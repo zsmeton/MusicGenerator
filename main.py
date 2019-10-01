@@ -17,12 +17,18 @@ from tqdm import tqdm
 
 def load_notes() -> list:
     notes = []
+    # Change songs loaded later, took way too long on my desktop
     song_files = glob.glob("./midi_songs/*.mid")
     for i, file in tqdm(enumerate(song_files), desc='Loading in songs'):
         midi = converter.parse(file)
 
         notes_to_parse = None
         parts = instrument.partitionByInstrument(midi)
+
+        # Create 1 x 89 np array
+        thisSlice = np.zeros(129, dtype=float)
+        lastOffset = 0.0
+        value = 0.0
 
         if parts:  # file has instrument parts
             parts = [part for part in parts if part.partName == 'Piano']
@@ -33,10 +39,32 @@ def load_notes() -> list:
         if notes_to_parse:
             for element in notes_to_parse:
                 if isinstance(element, note.Note):
-                    notes.append(str(element.pitch))
+                    # This gets me the note played in midi
+                    # element.pitch.midi
+                    # This gets me when the note is played
+                    # element.offset
+
+                    if(lastOffset != element.offset):
+                        value = element.offset - lastOffset
+                        lastOffset = element.offset
+
+                    thisSlice[element.pitch.midi - 1] = 1
+                    thisSlice[128] = value
+
+                    notes.append(thisSlice)
+                    thisSlice = np.zeros(129, dtype=float)
                 elif isinstance(element, chord.Chord):
-                    print(element)
-                    notes.append('.'.join(str(n) for n in element.normalOrder))
+                    if(lastOffset != element.offset):
+                        value = element.offset - lastOffset
+                        lastOffset = element.offset
+
+                    for n in element.notes:
+                        thisSlice[n.pitch.midi - 1] = 1
+
+                    thisSlice[128] = value
+                    notes.append(thisSlice)
+                    thisSlice = np.zeros(129, dtype=float)
+
     return notes
 
 
