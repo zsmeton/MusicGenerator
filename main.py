@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from plot_losses import PlotLearning
 from user_input import get_user_yes_no, get_user_options
 from tqdm import tqdm
-
+from guppy import hpy
 
 def load_song(song_path:str):
     midi = converter.parse(song_path)
@@ -58,16 +58,15 @@ def load_notes(folder) -> list:
     song_files = glob.glob(f"./{folder}/*.mid")
     for i, file in tqdm(enumerate(song_files), desc='Loading in songs'):
         notes.extend(load_song(file))
-
     return notes
 
 
-def get_sequences(notes, sequence_length=70) -> (np.array, np.array):
+def get_sequences(notes, sequence_length=70, data_multiplier=4) -> (np.array, np.array):
     X = []
     y = []
 
     # create input sequences and the corresponding outputs
-    for i in tqdm(range(0, len(notes) - sequence_length, 1), desc='Segmenting songs into sequences'):
+    for i in tqdm(range(0, len(notes) - sequence_length, sequence_length//data_multiplier), desc='Segmenting songs into sequences'):
         sequence_in = notes[i:i + sequence_length]
         sequence_out = notes[i + sequence_length]
         X.append(sequence_in)
@@ -81,19 +80,19 @@ def create_model(X_shape) -> Sequential:
     lstm_model.add(LSTM(
         256,
         input_shape=X_shape,
-        return_sequences=True, activation='hard_sigmoid'
+        return_sequences=True, activation='tanh'
     ))
     lstm_model.add(Dropout(0.2))
-    lstm_model.add(LSTM(512, return_sequences=True, activation='hard_sigmoid'))
+    lstm_model.add(LSTM(512, return_sequences=True, activation='tanh'))
     lstm_model.add(Dropout(0.2))
-    lstm_model.add(LSTM(256, return_sequences=True, activation='hard_sigmoid'))
+    lstm_model.add(LSTM(256, return_sequences=True, activation='tanh'))
     lstm_model.add(Dropout(0.2))
-    lstm_model.add(LSTM(256, activation='hard_sigmoid'))
+    lstm_model.add(LSTM(256, activation='tanh'))
     lstm_model.add(Dense(256))
     lstm_model.add(Dropout(0.3))
     lstm_model.add(Dense(129))
-    lstm_model.add(Activation('hard_sigmoid'))
-    lstm_model.compile(loss='categorical_crossentropy', optimizer='nadam', metrics=['categorical_accuracy'])
+    lstm_model.add(Activation('tanh'))
+    lstm_model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['categorical_accuracy'])
     return lstm_model
 
 
@@ -179,14 +178,11 @@ def generate_music(l_model, starter_notes=30, save_file='test_output'):
 
 
 if __name__ == '__main__':
-    notes = load_notes('midi_songs/training')
-    X_train, y_train = get_sequences(notes, sequence_length=70)
-    notes.clear()
-    notes = []
-    notes = load_notes('midi_songs/validation')
-    X_val, y_val = get_sequences(notes, sequence_length=70)
-    notes.clear()
-    notes = []
+    h = hpy()
+    X_train, y_train = get_sequences(load_notes('midi_songs/training'), sequence_length=70, data_multiplier=10)
+    print(h.heap())
+    X_val, y_val = get_sequences(load_notes('midi_songs/validation'), sequence_length=70, data_multiplier=10)
+    print(h.heap())
 
     option = get_user_options('What would you like to do:',['Train the model', 'Generate music', 'Create a picture of the model', 'Exit'])
     while option < 3:
