@@ -1,0 +1,4 @@
+**/*.npy
+**/*.hdf5
+**/*.png
+**/localFiles
