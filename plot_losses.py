@@ -3,6 +3,17 @@ from matplotlib import pyplot as plt
 import json
 
 class PlotLearning(Callback):
+    def load_in_data(self, filename):
+        data = []
+        with open(filename, 'r') as fin:
+            s = fin.readline()
+            s = s.replace('"', '')
+            s = s.replace("'", '"')
+            self.logs = json.loads(s)
+
+        for i,log in enumerate(self.logs):
+            self.on_epoch_end(i, log)
+
     def on_train_begin(self, logs={}):
         self.i = 0
         self.x = []
@@ -15,6 +26,7 @@ class PlotLearning(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         print(logs)
+        logs = dict([(key, [float(i) for i in value]) for key, value in logs.items()])
         self.logs.append(logs)
         self.x.append(self.i)
         self.losses.append(logs.get('loss'))
@@ -37,4 +49,4 @@ class PlotLearning(Callback):
 
     def on_train_end(self, logs={}):
         with open(f'logs.txt', 'w') as fout:
-            json.dump(self.logs, fout)
+            json.dump(str(self.logs), fout)
