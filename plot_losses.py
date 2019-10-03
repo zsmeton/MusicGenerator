@@ -2,6 +2,7 @@ from keras.callbacks import Callback
 from matplotlib import pyplot as plt
 import json
 
+
 class PlotLearning(Callback):
     def load_in_data(self, filename):
         data = []
@@ -11,7 +12,7 @@ class PlotLearning(Callback):
             s = s.replace("'", '"')
             self.logs = json.loads(s)
 
-        for i,log in enumerate(self.logs):
+        for i, log in enumerate(self.logs):
             self.on_epoch_end(i, log)
 
     def on_train_begin(self, logs={}):
@@ -25,7 +26,6 @@ class PlotLearning(Callback):
         self.logs = []
 
     def on_epoch_end(self, epoch, logs={}):
-        print(logs)
         logs = dict([(key, [float(i) for i in value]) for key, value in logs.items()])
         self.logs.append(logs)
         self.x.append(self.i)

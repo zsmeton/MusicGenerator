@@ -10,7 +10,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.utils import plot_model
 from sklearn.model_selection import train_test_split
 from plot_losses import PlotLearning
-from user_input import get_user_yes_no, get_user_options
+from user_input import get_user_yes_no, get_user_options, get_user_non_negative_number
 from tqdm import tqdm
 from guppy import hpy
 
@@ -75,6 +75,18 @@ def get_sequences(notes, sequence_length=70, data_multiplier=4, verbose=True) ->
     return np.array(X), np.array(y)
 
 
+def sequence_songs(X, sequence_length, data_multiplier=2):
+    X_seq = []
+    y = []
+    for song in X:
+        x_, y_ = get_sequences(song, sequence_length, data_multiplier=data_multiplier, verbose=False)
+        X_seq.extend(x_)
+        y.extend(y_)
+    X_seq = np.array(X_seq)
+    y = np.array(y)
+    return X_seq, y
+
+
 def create_model(X_shape) -> Sequential:
     lstm_model = Sequential()
     lstm_model.add(LSTM(
@@ -98,17 +110,13 @@ def create_model(X_shape) -> Sequential:
     return lstm_model
 
 
-def train_model(lstm_model: Sequential, X: np.ndarray, sequence_length, X_val=None , loadpath='', epochs=200, initial_epoch=0,
-                validation_size=0.2):
+def train_model(lstm_model: Sequential, X: np.ndarray, sequence_length, X_val=None, epochs=200, initial_epoch=0,
+                validation_size=0.2, songs_per_epoch=10):
     # Split data into train and test data
     if X_val is None:
         X, X_val = train_test_split(X, test_size=validation_size, random_state=1)
-    X_val_seq = []
-    y_val = []
-    for song in X_val:
-        x_, y_ = get_sequences(song, sequence_length, sequence_length//2, verbose=False)
-        X_val_seq.extend(x_)
-        y_val.extend(y_)
+
+    X_val_seq, y_val = sequence_songs(X_val, sequence_length, sequence_length//3)
 
     # Set up callbacks
     # Set when to checkpoint
@@ -118,33 +126,23 @@ def train_model(lstm_model: Sequential, X: np.ndarray, sequence_length, X_val=No
     plot = PlotLearning()
     callbacks_list = [checkpoint]
 
-    # load weights if resume
-    if loadpath:
-        try:
-            lstm_model.load_weights(loadpath)
-        except OSError:
-            raise ValueError(f"Invalid path to weights. '{loadpath}' not found.")
-
-    # train the model
     # set up training plotting
     plot.on_train_begin()
     if glob.glob('logs.txt') and initial_epoch != 0:
         plot.load_in_data('logs.txt')
-    for i in range(initial_epoch, epochs):
-        song_index = i % len(X)  # choose training song
-        # TODO: Handle songs not being big enough
-        if not len(X[song_index]) > sequence_length:
-            raise ValueError("Song not large enough to sequence")
-        X_seq, y = get_sequences(X[song_index], sequence_length=sequence_length)
-        train_history = {}
-        try:
+
+    # train the model
+    try:
+        for i in range(initial_epoch, epochs):
+            song_index = i % (len(X)-songs_per_epoch)  # choose training song
+            X_seq, y = sequence_songs(X[song_index:i+songs_per_epoch], sequence_length, data_multiplier=sequence_length)
             train_history = lstm_model.fit(X_seq, y, validation_data=(X_val_seq, y_val),
                                            epochs=i+1, initial_epoch=i, batch_size=64,
                                            callbacks=callbacks_list, validation_freq=1, verbose=1)
-        except:
-            if train_history:
-                plot.on_epoch_end(train_history.epoch, train_history.history)
-            raise
+            plot.on_epoch_end(train_history.epoch, train_history.history)
+    except:
+        plot.on_train_end()
+        raise
 
 
 def generate_music(l_model, starter_notes=30, save_file='test_output'):
@@ -211,8 +209,20 @@ if __name__ == '__main__':
             sequence_length = 70
             # create model
             model = create_model((sequence_length, X_train[0].shape[1]))
-            # train the model
-            train_model(model, X_train, sequence_length, X_val=X_val, epochs=2)#, X_val, y_val)
+
+            if get_user_yes_no('Would you like to resume a training session'):
+                filename = ''
+                while not glob.glob(filename):
+                    filename = input("What is the name of the file:")
+                model.load_weights(filename)
+                start_epoch = get_user_non_negative_number('What epoch were you on')
+                end_epoch = get_user_non_negative_number('How many epochs would you like to train in total')
+                # train the model
+                train_model(model, X_train, sequence_length, X_val=X_val, epochs=end_epoch, songs_per_epoch=10, initial_epoch=start_epoch)
+            else:
+                end_epoch = get_user_non_negative_number('How many epochs would you like to run')
+                train_model(model, X_train, sequence_length, X_val=X_val, epochs=end_epoch, songs_per_epoch=10)
+
         elif option == 1:
             print("NOT IMPLEMENTED")
             assert False
