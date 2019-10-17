@@ -31,7 +31,7 @@ class PlotLearning(Callback):
         self.fig = plt.figure()
         self.logs = []
 
-    def on_epoch_end(self, epoch, logs={}, show=True):
+    def on_epoch_end(self, epoch, logs={}, show=True, savefile='plot.png'):
         logs = dict([(key, [float(i) for i in value]) for key, value in logs.items()])
         self.logs.append(logs)
         self.x.append(self.i)
@@ -50,10 +50,11 @@ class PlotLearning(Callback):
 
             ax2.plot(self.x, self.acc, label=f"{self.metric_desc}")
             ax2.plot(self.x, self.val_acc, label=f"validation {self.metric_desc}")
-            ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc))
+            ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc), )
             ax2.legend()
 
             plt.show()
+            plt.savefig(savefile)
 
     def on_train_end(self, logs={}):
         with open(f'{self.log_file}', 'w') as fout:

@@ -1,29 +1,12 @@
+from keras import Sequential
+from keras.callbacks import ModelCheckpoint
+from keras.layers import Activation, Dense, Dropout, LSTM
+from sklearn.model_selection import train_test_split
+
+from plot_losses import PlotLearning
 from training_utils import *
-
-
-def get_sequences_notes(notes, sequence_length=70, data_multiplier=None, verbose=True) -> (np.array, np.array):
-    """
-
-    :param notes:
-    :param sequence_length:
-    :param data_multiplier:
-    :param verbose:
-    :return:
-    """
-    X = []
-    y = []
-
-    # create input sequences and the corresponding outputs
-    multiplier = 1
-    if data_multiplier is not None:
-        multiplier = sequence_length//data_multiplier
-    for i in tqdm(range(0, int(len(notes) - sequence_length), int(multiplier)), desc='Segmenting songs into sequences', disable=(not verbose)):
-        sequence_in = notes[i:i + sequence_length]
-        sequence_out = notes[i + sequence_length]
-        X.append(sequence_in)
-        y.append(sequence_out[:-1])
-
-    return np.array(X), np.array(y)
+from user_input import get_user_options, get_user_non_negative_number_or_default, get_user_yes_no, \
+    get_user_non_negative_number, get_user_filename
 
 
 def create_model_notes(X_shape) -> Sequential:
@@ -40,10 +23,8 @@ def create_model_notes(X_shape) -> Sequential:
     lstm_model.add(Dense(256))
     lstm_model.add(Dropout(0.2))
     lstm_model.add(Dense(256))
-    lstm_model.add(Dropout(0.3))
-    lstm_model.add(Dense(128))
-    lstm_model.add(Activation('tanh'))
-    lstm_model.compile(loss='mean_squared_error', optimizer='adam', metrics=[r2_keras])
+    lstm_model.add(Dense(128, activation='tanh'))
+    lstm_model.compile(loss='mean_squared_error', optimizer='adam', metrics=[rmse])
     return lstm_model
 
 
@@ -53,15 +34,15 @@ def train_model_notes(lstm_model: Sequential, X: np.ndarray, sequence_length, X_
     if X_val is None:
         X, X_val = train_test_split(X, test_size=validation_size, random_state=1)
 
-    X_val_seq, y_val = sequence_songs(X_val, sequence_length, sequence_length//3)
+    X_val_seq, y_val = sequence_songs(X_val, sequence_length, sequence_method='notes', data_multiplier=sequence_length//3)
 
     # Set up callbacks
     # Set when to checkpoint
     filepath = "note-model-{epoch:02d}-{loss:.4f}.hdf5"
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, mode='min')
+    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=False, mode='min')
 
     # Set up live training plotting
-    plot = PlotLearning('r2_keras', 'r squared', 'notes_logs.txt')
+    plot = PlotLearning('rmse', 'root mean squared error', 'notes_logs.txt')
     callbacks_list = [checkpoint]
 
     # set up training plotting
@@ -70,19 +51,28 @@ def train_model_notes(lstm_model: Sequential, X: np.ndarray, sequence_length, X_
         plot.load_in_data('notes_logs.txt')
 
     # train the model
-    keep_data = 3
+    keep_data = 2
     try:
         for i in range(initial_epoch, epochs,keep_data):
-            song_index = i % (len(X)-songs_per_epoch)  # choose training song
-            X_seq, y = sequence_songs_size(X, song_index, 13000, sequence_length)
+            # choose training song
+            song_index = i + random.randrange(keep_data)
+
+            # If we have gone through all the songs, randomize the list and try again
+            if song_index >(len(X) - songs_per_epoch):
+                X = randomize(X, 3*len(X))
+                song_index %= len(X) - songs_per_epoch
+
+            X_seq, y = sequence_songs(X, sequence_length, sequence_method='notes', size_of_array=800,
+                                      starting_position=song_index)
+
             for j in range(keep_data):
-                train_history = lstm_model.fit(X_seq, y, validation_data=(X_val_seq, y_val),
-                                               epochs=i+j+1, initial_epoch=i+j, batch_size=64,
-                                               callbacks=callbacks_list, validation_freq=1, verbose=1)
-                plot.on_epoch_end(train_history.epoch, train_history.history)
-            plot.on_train_end()
+                    train_history = lstm_model.fit(X_seq, y, validation_data=(X_val_seq, y_val),
+                                                   epochs=i+j+1, initial_epoch=i+j, batch_size=64,
+                                                   callbacks=callbacks_list, validation_freq=1, verbose=1)
+                    plot.on_epoch_end(train_history.epoch, train_history.history)
+            plot.on_train_end('notes_training_graph.png')
     except:
-        plot.on_train_end()
+        plot.on_train_end('notes_training_graph.png')
         raise
 
 """
@@ -140,8 +130,6 @@ def generate_music(l_model, starter_notes=30, save_file='test_output'):
 """
 
 if __name__ == '__main__':
-    h = hpy() # can call print(h.heap()) to view current heap usage
-
     option = get_user_options('What would you like to do',['Train the model', 'Exit'])
     while option < 2:
         if option == 1:

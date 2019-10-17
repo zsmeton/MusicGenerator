@@ -3,3 +3,5 @@
 **/*.png
 **/localFiles
 logs.txt
+venv
+__pycache__/**

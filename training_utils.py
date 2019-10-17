@@ -1,23 +1,60 @@
-from music21 import converter, instrument, note, chord, stream
+from music21 import converter, instrument, note, chord
 import glob
 import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers import LSTM
-from keras.layers import Activation
-from keras.callbacks import ModelCheckpoint
-from sklearn.model_selection import train_test_split
-from plot_losses import PlotLearning
-from user_input import get_user_yes_no, get_user_options, get_user_non_negative_number, get_user_filename, get_user_non_negative_number_or_default
 from tqdm import tqdm
-from guppy import hpy
 from keras import backend
 import random
-from sklearn.metrics.regression import r2_score
+from collections import Mapping, Iterable
+from sys import getsizeof
 
 
-def load_song(song_path:str):
+def randomize(x:list, n_iters=100):
+    for i in range(n_iters):
+        i1 = random.randrange(len(x))
+        i2 = random.randrange(len(x))
+        x[i1], x[i2] = x[i2], x[i1]
+    return x
+
+
+def deep_getsizeof(o, ids=None):
+    """
+    Find the memory footprint of a Python object
+
+    This is a recursive function that drills down a Python object graph
+    like a dictionary holding nested dictionaries with lists of lists
+    and tuples and sets.
+
+    The sys.getsizeof function does a shallow size of only. It counts each
+    object inside a container as pointer only regardless of how big it
+    really is.
+
+    :param o: the object
+    :param ids:
+    :return:
+    """
+    if ids is None:
+        ids = set()
+
+    d = deep_getsizeof
+    if id(o) in ids:
+        return 0
+
+    r = getsizeof(o)
+    ids.add(id(o))
+
+    if isinstance(o, str) or isinstance(0, bytes):
+        return r
+
+    if isinstance(o, Mapping):
+        return r + sum(d(k, ids) + d(v, ids) for k, v in o.iteritems())
+
+    if isinstance(o, Iterable):
+        return r + sum(d(x, ids) for x in o)
+
+    return r
+
+
+def load_song(song_path: str):
     midi = converter.parse(song_path)
     notes_to_parse = None
     parts = instrument.partitionByInstrument(midi)
@@ -66,14 +103,6 @@ def load_notes(folder, num=None) -> list:
 
 
 def get_sequences_durations(notes, sequence_length=70, data_multiplier=None, verbose=True) -> (np.array, np.array):
-    """
-
-    :param notes:
-    :param sequence_length:
-    :param data_multiplier:
-    :param verbose:
-    :return:
-    """
     X = []
     y = []
 
@@ -90,28 +119,67 @@ def get_sequences_durations(notes, sequence_length=70, data_multiplier=None, ver
     return np.array(X), np.array(y)
 
 
-def sequence_songs(X, sequence_length, data_multiplier=None):
-    X_seq = []
+def get_sequences_notes(notes, sequence_length=70, data_multiplier=None, verbose=True) -> (np.array, np.array):
+    X = []
     y = []
-    for song in X:
-        x_, y_ = get_sequences_durations(song, sequence_length, data_multiplier=data_multiplier, verbose=False)
-        X_seq.extend(x_)
-        y.extend(y_)
-    X_seq = np.array(X_seq)
-    y = np.array(y)
-    return X_seq, y
+
+    # create input sequences and the corresponding outputs
+    multiplier = 1
+    if data_multiplier is not None:
+        multiplier = sequence_length//data_multiplier
+    for i in tqdm(range(0, int(len(notes) - sequence_length), int(multiplier)), desc='Segmenting songs into sequences', disable=(not verbose)):
+        sequence_in = notes[i:i + sequence_length]
+        sequence_out = notes[i + sequence_length]
+        X.append(sequence_in)
+        y.append(sequence_out[:-1])
+
+    return np.array(X), np.array(y)
 
 
-def sequence_songs_size(X, starting_position, size_of_array, sequence_length, data_multiplier=None):
+def sequence_songs(X, sequence_length, sequence_method, data_multiplier=None, size_of_array=None, starting_position=0):
+    """
+    Builds X,Y arrays where X is a series of notes/chords and time steps and y is the target value
+    :param X: Array of songs
+    :param sequence_length: number of notes and chords used to predict the target y value
+    :param sequence_method: 'duration' for time step target, 'notes' for note/chord target
+    :param data_multiplier: The size of the output arrays compared to the input
+    :param size_of_array: max size in MB of X and Y combined
+    :param starting_position: place to begin indexing the song array
+    :return: X array of n notes/chords, y target values
+    """
+    # Set sequence method based on string
+    if sequence_method == 'duration':
+        sequence_method = get_sequences_durations
+    elif sequence_method == 'notes':
+        sequence_method = get_sequences_notes
+    else:
+        raise ValueError(f'sequence method was "{sequence_method}", options are ["duration", "notes"]')
+
     X_seq = []
     y = []
     counter = starting_position
-    while len(X_seq) <= size_of_array:
+    current_size = 0
+
+    if data_multiplier is None:
+        data_multiplier = sequence_length
+
+    while counter < len(X):
+        # Sequence a song
         song = X[counter]
-        x_, y_ = get_sequences_durations(song, sequence_length, data_multiplier=data_multiplier, verbose=False)
+        counter += 1
+        x_, y_ = sequence_method(song, sequence_length, data_multiplier=data_multiplier, verbose=False)
+
+        # if capping result by size calculate size of arrays and break if the size would be too great
+        if size_of_array is not None:
+            current_size += deep_getsizeof(x_) + deep_getsizeof(y_)
+            if (current_size/1e6) > size_of_array:
+                break
+            else:
+                counter %= len(X)
+        # add the sequence to the x and y arrays
         X_seq.extend(x_)
         y.extend(y_)
-        counter += 1
+
     X_seq = np.array(X_seq)
     y = np.array(y)
     return X_seq, y
