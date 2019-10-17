@@ -4,16 +4,22 @@ import json
 
 
 class PlotLearning(Callback):
+    def __init__(self, metric, metric_desc, log_file):
+        self.metric = metric
+        self.metric_desc = metric_desc
+        self.log_file = log_file
+
     def load_in_data(self, filename):
-        data = []
+        logs = None
         with open(filename, 'r') as fin:
             s = fin.readline()
             s = s.replace('"', '')
             s = s.replace("'", '"')
-            self.logs = json.loads(s)
+            logs = json.loads(s)
 
-        for i, log in enumerate(self.logs):
-            self.on_epoch_end(i, log)
+        if logs is not None:
+            for i, log in enumerate(logs):
+                self.on_epoch_end(i, log, False)
 
     def on_train_begin(self, logs={}):
         self.i = 0
@@ -25,28 +31,30 @@ class PlotLearning(Callback):
         self.fig = plt.figure()
         self.logs = []
 
-    def on_epoch_end(self, epoch, logs={}):
+    def on_epoch_end(self, epoch, logs={}, show=True):
         logs = dict([(key, [float(i) for i in value]) for key, value in logs.items()])
         self.logs.append(logs)
         self.x.append(self.i)
         self.losses.append(logs.get('loss'))
         self.val_losses.append(logs.get('val_loss'))
-        self.acc.append(logs.get('categorical_accuracy'))
-        self.val_acc.append(logs.get('val_categorical_accuracy'))
+        self.acc.append(logs.get(f'{self.metric}'))
+        self.val_acc.append(logs.get(f'val_{self.metric}'))
+
         self.i += 1
-        f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+        if show:
+            f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 
-        ax1.set_yscale('log')
-        ax1.plot(self.x, self.losses, label="loss")
-        ax1.plot(self.x, self.val_losses, label="validation loss")
-        ax1.legend()
+            ax1.plot(self.x, self.losses, label="loss")
+            ax1.plot(self.x, self.val_losses, label="validation loss")
+            ax1.legend()
 
-        ax2.plot(self.x, self.acc, label="categorical accuracy")
-        ax2.plot(self.x, self.val_acc, label="validation accuracy")
-        ax2.legend()
+            ax2.plot(self.x, self.acc, label=f"{self.metric_desc}")
+            ax2.plot(self.x, self.val_acc, label=f"validation {self.metric_desc}")
+            ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc))
+            ax2.legend()
 
-        plt.show()
+            plt.show()
 
     def on_train_end(self, logs={}):
-        with open(f'logs.txt', 'w') as fout:
+        with open(f'{self.log_file}', 'w') as fout:
             json.dump(str(self.logs), fout)
