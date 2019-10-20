@@ -85,9 +85,16 @@ if __name__ == '__main__':
     while option < 2:
         if option == 1:
             # Load in the data
-            num_train = get_user_non_negative_number_or_default('How many training files do you want to load', default_message='to load all files')
-            X_train = load_notes('midi_songs/training', num_train)
-            X_val = load_notes('midi_songs/validation')
+            if glob.glob('X_train.npy') and glob.glob('X_val.npy') and get_user_yes_no('Would you like to load the songs from memory'):
+                X_train = np.load('X_train.npy')
+                X_val = np.load('X_val.npy')
+            else:
+                num_train = get_user_non_negative_number_or_default('How many training files do you want to load', default_message='to load all files')
+                X_train = load_notes('midi_songs/training', num_train)
+                X_val = load_notes('midi_songs/validation')
+                if get_user_yes_no('Would you like to save the loaded data to memory'):
+                    np.save('X_train.npy', X_train)
+                    np.save('X_val.npy', X_val)
 
             sequence_length = 70
             # create model

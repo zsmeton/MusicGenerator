@@ -53,8 +53,8 @@ class PlotLearning(Callback):
             ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc), )
             ax2.legend()
 
-            plt.show()
             plt.savefig(savefile)
+            plt.show()
 
     def on_train_end(self, logs={}):
         with open(f'{self.log_file}', 'w') as fout:
