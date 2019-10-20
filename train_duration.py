@@ -42,16 +42,16 @@ def train_model_durations(lstm_model: Sequential, X: np.ndarray, sequence_length
 
     # Set up callbacks
     # Set when to checkpoint
-    filepath = "duration-model-{epoch:02d}-{loss:.4f}.hdf5"
+    filepath = "models/duration/duration-model-{epoch:02d}-{loss:.4f}.hdf5"
     checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, mode='min')
     # Set up live training plotting
-    plot = PlotLearning('rmse', 'root mean squared error', 'duration_logs.txt')
+    plot = PlotLearning('rmse', 'root mean squared error', 'models/duration/duration_logs.txt')
     callbacks_list = [checkpoint]
 
     # set up training plotting
     plot.on_train_begin()
-    if glob.glob('duration_logs.txt') and initial_epoch != 0:
-        plot.load_in_data('duration_logs.txt')
+    if glob.glob('models/duration/duration_logs.txt') and initial_epoch != 0:
+        plot.load_in_data('models/duration/duration_logs.txt')
 
     # train the model
     keep_data = 2
@@ -73,9 +73,9 @@ def train_model_durations(lstm_model: Sequential, X: np.ndarray, sequence_length
                                                callbacks=callbacks_list, validation_freq=1, verbose=1)
                 plot.on_epoch_end(train_history.epoch, train_history.history)
 
-            plot.on_train_end('duration_training_graph.png')
+            plot.on_train_end('models/duration/duration_training_graph.png')
     except:
-        plot.on_train_end('duration_training_graph.png')
+        plot.on_train_end('models/duration/duration_training_graph.png')
         raise
 
 

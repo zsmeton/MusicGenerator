@@ -31,7 +31,7 @@ class PlotLearning(Callback):
         self.fig = plt.figure()
         self.logs = []
 
-    def on_epoch_end(self, epoch, logs={}, show=True, savefile='plot.png'):
+    def on_epoch_end(self, epoch, logs={}, show=True):
         logs = dict([(key, [float(i) for i in value]) for key, value in logs.items()])
         self.logs.append(logs)
         self.x.append(self.i)
@@ -53,9 +53,21 @@ class PlotLearning(Callback):
             ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc), )
             ax2.legend()
 
-            plt.savefig(savefile)
             plt.show()
 
-    def on_train_end(self, logs={}):
+    def on_train_end(self, logs={}, savefile='plot.png'):
+        f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+        ax1.plot(self.x, self.losses, label="loss")
+        ax1.plot(self.x, self.val_losses, label="validation loss")
+        ax1.legend()
+
+        ax2.plot(self.x, self.acc, label=f"{self.metric_desc}")
+        ax2.plot(self.x, self.val_acc, label=f"validation {self.metric_desc}")
+        ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc), )
+        ax2.legend()
+
+        plt.savefig(savefile)
+
         with open(f'{self.log_file}', 'w') as fout:
             json.dump(str(self.logs), fout)

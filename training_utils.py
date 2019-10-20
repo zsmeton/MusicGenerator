@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 from keras import backend
 import random
-from collections import Mapping, Iterable
+from collections.abc import Mapping, Iterable
 from sys import getsizeof
 from user_input import get_user_options, get_user_non_negative_number_or_default, get_user_yes_no, \
     get_user_non_negative_number, get_user_filename
@@ -199,15 +199,15 @@ def r2_keras(y_true, y_pred):
 def getX_train_val():
     if glob.glob('X_train.npy') and glob.glob('X_val.npy') and get_user_yes_no(
             'Would you like to load the songs from memory'):
-        X_train = np.load('X_train.npy')
-        X_val = np.load('X_val.npy')
+        X_train = np.load('X_train.npy', allow_pickle=True)
+        X_val = np.load('X_val.npy', allow_pickle=True)
     else:
         num_train = get_user_non_negative_number_or_default('How many training files do you want to load',
                                                             default_message='to load all files')
         X_train = load_notes('midi_songs/training', num_train)
         X_val = load_notes('midi_songs/validation')
         if get_user_yes_no('Would you like to save the loaded data to memory'):
-            np.save('X_train.npy', X_train)
-            np.save('X_val.npy', X_val)
+            np.save('X_train.npy', X_train, allow_pickle=True)
+            np.save('X_val.npy', X_val, allow_pickle=True)
 
     return X_train, X_val

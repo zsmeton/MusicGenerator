@@ -38,17 +38,17 @@ def train_model_notes(lstm_model: Sequential, X: np.ndarray, sequence_length, X_
 
     # Set up callbacks
     # Set when to checkpoint
-    filepath = "note-model-{epoch:02d}-{loss:.4f}.hdf5"
+    filepath = "models/notes/note-model-{epoch:02d}-{loss:.4f}.hdf5"
     checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=False, mode='min')
 
     # Set up live training plotting
-    plot = PlotLearning('rmse', 'root mean squared error', 'notes_logs.txt')
+    plot = PlotLearning('rmse', 'root mean squared error', 'models/notes/notes_logs.txt')
     callbacks_list = [checkpoint]
 
     # set up training plotting
     plot.on_train_begin()
-    if glob.glob('notes_logs.txt') and initial_epoch != 0:
-        plot.load_in_data('notes_logs.txt')
+    if glob.glob('models/notes/notes_logs.txt') and initial_epoch != 0:
+        plot.load_in_data('models/notes/notes_logs.txt')
 
     # train the model
     keep_data = 2
@@ -70,9 +70,9 @@ def train_model_notes(lstm_model: Sequential, X: np.ndarray, sequence_length, X_
                                                    epochs=i+j+1, initial_epoch=i+j, batch_size=64,
                                                    callbacks=callbacks_list, validation_freq=1, verbose=1)
                     plot.on_epoch_end(train_history.epoch, train_history.history)
-            plot.on_train_end('notes_training_graph.png')
+            plot.on_train_end('models/notes/notes_training_graph.png')
     except:
-        plot.on_train_end('notes_training_graph.png')
+        plot.on_train_end('models/notes/notes_training_graph.png')
         raise
 
 """
