@@ -134,9 +134,7 @@ if __name__ == '__main__':
     while option < 2:
         if option == 1:
             # Load in the data
-            num_train = get_user_non_negative_number_or_default('How many training files do you want to load', default_message='to load all files')
-            X_train = load_notes('midi_songs/training', num_train)
-            X_val = load_notes('midi_songs/validation')
+            X_train, X_val = getX_train_val()
 
             sequence_length = 70
             # create model

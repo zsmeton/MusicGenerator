@@ -6,7 +6,8 @@ from keras import backend
 import random
 from collections import Mapping, Iterable
 from sys import getsizeof
-
+from user_input import get_user_options, get_user_non_negative_number_or_default, get_user_yes_no, \
+    get_user_non_negative_number, get_user_filename
 
 def randomize(x:list, n_iters=100):
     for i in range(n_iters):
@@ -193,3 +194,20 @@ def r2_keras(y_true, y_pred):
     SS_res = backend.mean(backend.square(y_true - y_pred))
     SS_tot = backend.mean(backend.square(y_true - backend.mean(y_true)))
     return 1 - SS_res / (SS_tot + backend.epsilon())
+
+
+def getX_train_val():
+    if glob.glob('X_train.npy') and glob.glob('X_val.npy') and get_user_yes_no(
+            'Would you like to load the songs from memory'):
+        X_train = np.load('X_train.npy')
+        X_val = np.load('X_val.npy')
+    else:
+        num_train = get_user_non_negative_number_or_default('How many training files do you want to load',
+                                                            default_message='to load all files')
+        X_train = load_notes('midi_songs/training', num_train)
+        X_val = load_notes('midi_songs/validation')
+        if get_user_yes_no('Would you like to save the loaded data to memory'):
+            np.save('X_train.npy', X_train)
+            np.save('X_val.npy', X_val)
+
+    return X_train, X_val
