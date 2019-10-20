@@ -55,7 +55,7 @@ class PlotLearning(Callback):
 
             plt.show()
 
-    def on_train_end(self, logs={}, savefile='plot.png'):
+    def on_train_end(self, savefile, logs={}):
         f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 
         ax1.plot(self.x, self.losses, label="loss")
