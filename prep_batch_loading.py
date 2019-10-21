@@ -96,7 +96,7 @@ def threaded_sequencing(i, X, sequence_method_name, counter: Value, locker: Lock
                     counter.value += 1
                 return
 
-    print(i, ': complete')
+    print(f"Song {i}'s {sequence_method_name} data processing: complete")
 
 """
 def sequence_songs_size(X, sequence_length, sequence_method_name, size_of_array):
