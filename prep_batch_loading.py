@@ -94,7 +94,7 @@ def threaded_sequencing(i, X, sequence_method_name, counter: Value, locker: Lock
                     X_seq.clear()
                     y.clear()
                     counter.value += 1
-                return
+                break
 
     print(f"Song {i}'s {sequence_method_name} data processing: complete")
 
@@ -167,11 +167,13 @@ def setup(train, val, method):
     counter_val = Value('i', 0)
     lock = Lock()
 
-    for j in range(0, len(X_train), 4):
-        procs = [Process(target=threaded_sequencing, args=(i, X_train, method, counter_val, lock)) for i in
-                 range(j, j + 4) if i < len(X_train)]
-        for p in procs: p.start()
-        for p in procs: p.join()
+    for j in range(0, len(train), 4):
+        procs = [Process(target=threaded_sequencing, args=(i, train, method, counter_val, lock)) for i in
+                 range(j, j + 4) if i < len(train)]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join()
 
 
 if __name__ == '__main__':
