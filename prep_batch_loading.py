@@ -104,6 +104,15 @@ def setup(train, val, method, sequence_length, size_of_array):
         print('_' * 50)
 
 
+def note_lookup_dict(filename):
+    """
+    Create a lookup table of integers to pitch for a song
+    ex. 60 = 'C4'
+    :param filename: path to song
+    :return:
+    """
+
+
 if __name__ == '__main__':
     freeze_support()
 

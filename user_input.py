@@ -1,3 +1,4 @@
+import glob
 import readline
 from pip._vendor.distlib.compat import raw_input
 
@@ -35,7 +36,7 @@ def get_user_non_negative_number(message=None):
             print(usr_input, "is not a valid number please try again.")
 
 
-def get_user_non_negative_number_or_default(message, default_message='default', default_key='*',default_value=None):
+def get_user_non_negative_number_or_default(message, default_message='default', default_key='*', default_value=None):
     """
     Prints a prompt and gets a number response from the user
     :param message: the prompt to ask the user
@@ -69,7 +70,7 @@ def get_user_options(message, options):
         print("{} :".format(message), flush=True)
         options = [str(option).lower() for option in options]
         for i, option in enumerate(options):
-            print("({}) {}".format(i+1, option), flush=True)
+            print("({}) {}".format(i + 1, option), flush=True)
         # get user input
         usr_input = int(get_user_non_negative_number())
         if 1 <= usr_input <= len(options):
@@ -78,9 +79,11 @@ def get_user_options(message, options):
             print(usr_input, "is not a valid option please try again.", flush=True)
 
 
-def get_user_filename(message):
-    readline.parse_and_bind("tab: complete")
-    readline.set_completer_delims(" \t")
-    line = raw_input(f'{message}: ')
-    readline.set_completer_delims(" ?>q")
-    return line
+def get_user_filename(message, extension=None):
+    filename = input(f'{message}: ')
+    while not glob.glob(filename) or (extension is not None and not extension in filename):
+        if not glob.glob(filename):
+            print(f'The file {filename} does not exist please select a different file')
+        elif extension is not None and not extension in filename:
+            print(f'The file {filename} does not have the correct extension {extension}')
+    return filename

@@ -6,8 +6,8 @@ from keras import backend
 import random
 from collections.abc import Mapping, Iterable
 from sys import getsizeof
-from user_input import get_user_options, get_user_non_negative_number_or_default, get_user_yes_no, \
-    get_user_non_negative_number, get_user_filename
+from user_input import get_user_non_negative_number_or_default, get_user_yes_no
+
 
 def randomize(x:list, n_iters=100):
     for i in range(n_iters):
@@ -60,7 +60,7 @@ def load_song(song_path: str):
     notes_to_parse = None
     parts = instrument.partitionByInstrument(midi)
 
-    # Create 1 x 89 np array
+    # Create 1 x 129 np array [0-127] note [128] duration
     thisSlice = np.zeros(129, dtype=float)
     lastOffset = 0.0
     value = 0.0
@@ -74,18 +74,20 @@ def load_song(song_path: str):
         notes_to_parse = midi.flat.notes
     if notes_to_parse:
         for element in notes_to_parse:
-            if lastOffset != element.offset:
-                # This gets me when the note is played
-                # element.offset
-                value = element.offset - lastOffset
-                lastOffset = element.offset
+            # This gets me when the note is played
+            # element.offset
+            value = element.offset - lastOffset
+            lastOffset = element.offset
+
+            # set slice values
             if isinstance(element, note.Note):
-                # This gets me the note played in midi
-                # element.pitch.midi
-                thisSlice[element.pitch.midi - 1] = 1
+                if not element.isRest:
+                    # This gets me the note played in midi
+                    # element.pitch.midi
+                    thisSlice[element.pitch.midi] = 1
             elif isinstance(element, chord.Chord):
                 for n in element.notes:
-                    thisSlice[n.pitch.midi - 1] = 1
+                    thisSlice[n.pitch.midi] = 1
             thisSlice[-1] = value
             notes.append(thisSlice)
             thisSlice = np.zeros(129, dtype=float)
