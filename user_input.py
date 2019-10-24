@@ -66,16 +66,16 @@ def get_user_options(message, options):
     """
     while True:
         # Print message
-        print("{} :".format(message))
+        print("{} :".format(message), flush=True)
         options = [str(option).lower() for option in options]
         for i, option in enumerate(options):
-            print("({}) {}".format(i+1, option))
+            print("({}) {}".format(i+1, option), flush=True)
         # get user input
-        usr_input = get_user_non_negative_number()
-        if get_user_non_negative_number() >= 1 and int(usr_input) <= len(options):
+        usr_input = int(get_user_non_negative_number())
+        if 1 <= usr_input <= len(options):
             return int(usr_input)
         else:
-            print(usr_input, "is not a valid option please try again.")
+            print(usr_input, "is not a valid option please try again.", flush=True)
 
 
 def get_user_filename(message):
