@@ -205,7 +205,7 @@ def getX_train_val():
         num_train = get_user_non_negative_number_or_default('How many training files do you want to load',
                                                             default_message='to load all files')
         X_train = load_notes('midi_songs/training', num_train)
-        X_val = load_notes('midi_songs/validation')
+        X_val = load_notes('midi_songs/testing')
         if get_user_yes_no('Would you like to save the loaded data to memory'):
             np.save('X_train.npy', X_train, allow_pickle=True)
             np.save('X_val.npy', X_val, allow_pickle=True)

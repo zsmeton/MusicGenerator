@@ -18,7 +18,11 @@ class My_Custom_Generator(keras.utils.Sequence):
         X = []
         y = []
         for file_x, file_y in zip(batch_x, batch_y):
-            X.extend(np.load(file_x, allow_pickle=True))
-            y.extend(np.load(file_y, allow_pickle=True))
+            x = np.load(file_x, allow_pickle=True)
+            for entry in x:
+                X.append(entry)
+            y_ = np.load(file_y, allow_pickle=True)
+            for entry in y_:
+                y.append(entry)
 
-        return X,y
+        return np.array(X), np.array(y)

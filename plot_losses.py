@@ -4,10 +4,11 @@ import json
 
 
 class PlotLearning(Callback):
-    def __init__(self, metric, metric_desc, log_file):
+    def __init__(self, metric, metric_desc, log_file, graph_name):
         self.metric = metric
         self.metric_desc = metric_desc
         self.log_file = log_file
+        self.graph_name = graph_name
 
     def load_in_data(self, filename):
         logs = None
@@ -32,7 +33,11 @@ class PlotLearning(Callback):
         self.logs = []
 
     def on_epoch_end(self, epoch, logs={}, show=True):
-        logs = dict([(key, [float(i) for i in value]) for key, value in logs.items()])
+        print(logs.items())
+        try:
+            logs = dict([(key, [float(i) for i in value]) for key, value in logs.items()])
+        except TypeError:
+            logs = dict([(key, [float(value)]) for key, value in logs.items()])
         self.logs.append(logs)
         self.x.append(self.i)
         self.losses.append(logs.get('loss'))
@@ -53,21 +58,12 @@ class PlotLearning(Callback):
             ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc), )
             ax2.legend()
 
+            plt.savefig(self.graph_name)
             plt.show()
 
-    def on_train_end(self, savefile, logs={}):
-        f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+            with open(f'{self.log_file}', 'w') as fout:
+                json.dump(str(self.logs), fout)
 
-        ax1.plot(self.x, self.losses, label="loss")
-        ax1.plot(self.x, self.val_losses, label="validation loss")
-        ax1.legend()
-
-        ax2.plot(self.x, self.acc, label=f"{self.metric_desc}")
-        ax2.plot(self.x, self.val_acc, label=f"validation {self.metric_desc}")
-        ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc), )
-        ax2.legend()
-
-        plt.savefig(savefile)
-
+    def on_train_end(self, logs={}):
         with open(f'{self.log_file}', 'w') as fout:
             json.dump(str(self.logs), fout)

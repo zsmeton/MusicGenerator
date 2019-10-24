@@ -18,14 +18,17 @@ def get_user_yes_no(message):
             print(usr_input, "is not a valid response please enter (y/n).")
 
 
-def get_user_non_negative_number(message):
+def get_user_non_negative_number(message=None):
     """
     Prints a prompt and gets a number response from the user
     :param message: the prompt to ask the user
     :return: float
     """
     while True:
-        usr_input = input(f"{message}: ").capitalize()
+        if message is not None:
+            usr_input = input(f"{message}: ").capitalize()
+        else:
+            usr_input = input().capitalize()
         if usr_input.isdecimal() and float(usr_input) >= 0:
             return float(usr_input)
         else:
@@ -42,7 +45,10 @@ def get_user_non_negative_number_or_default(message, default_message='default', 
     :return: float
     """
     while True:
-        usr_input = input(f"{message} or {default_key} for {default_message}: ").capitalize()
+        if default_message or default_key:
+            usr_input = input(f"{message} or {default_key} for {default_message}: ").capitalize()
+        else:
+            usr_input = input(f"{message}: ").capitalize()
         if usr_input.isdecimal() and float(usr_input) >= 0:
             return float(usr_input)
         elif usr_input in default_key:
@@ -65,8 +71,8 @@ def get_user_options(message, options):
         for i, option in enumerate(options):
             print("({}) {}".format(i+1, option))
         # get user input
-        usr_input = input()
-        if int(usr_input) >= 0 and int(usr_input) < len(options):
+        usr_input = get_user_non_negative_number()
+        if get_user_non_negative_number() >= 1 and int(usr_input) <= len(options):
             return int(usr_input)
         else:
             print(usr_input, "is not a valid option please try again.")

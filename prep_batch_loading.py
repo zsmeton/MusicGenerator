@@ -32,7 +32,7 @@ def size_of_numpy_array(arr: np.array):
     return arr.size * arr.dtype.itemsize
 
 
-def threaded_sequencing(i, X, sequence_method_name, counter: Value, locker: Lock):
+def threaded_sequencing(i, X, sequence_method_name, save_path,counter: Value, locker: Lock):
     # Set sequence method based on string
     if sequence_method_name == 'duration':
         sequence_method = get_sequences_durations
@@ -41,8 +41,8 @@ def threaded_sequencing(i, X, sequence_method_name, counter: Value, locker: Lock
     else:
         raise ValueError(f'sequence method was "{sequence_method_name}", options are ["duration", "notes"]')
 
-    sequence_length = 70
-    size_of_array = 50
+    sequence_length = 50
+    size_of_array = 15
     X_seq = []
     y = []
     current_size = 0
@@ -52,51 +52,29 @@ def threaded_sequencing(i, X, sequence_method_name, counter: Value, locker: Lock
     size_increment = (size_of_numpy_array(x_temp[0]) + size_of_numpy_array(y_temp[0])) / 1e6
     x_temp = None
     y_temp = None
+    step = int(size_of_array/size_increment)
 
     # Build array of all sequences
     # Sequence a song
     song = X[i]
     x_, y_ = sequence_method(song, sequence_length, verbose=False)
 
-    for x_elem, y_elem in zip(x_, y_):
-        current_size += size_increment
+    for j in range(0, len(x_)-step+1, step):
         # add the sequence to the x and y arrays
-        X_seq.append(x_elem)
-        y.append(y_elem)
+        X_seq.extend(x_[j:j+step])
+        y.extend(y_[j:j+step])
         # save the array once it reaches the correct size
-        if current_size > size_of_array:
-            with locker:
-                # Save the file
-                np.save(f'batch_data/{sequence_method_name}/train/x{counter.value}', X_seq, allow_pickle=True)
-                np.save(f'batch_data/{sequence_method_name}/train/y{counter.value}', y, allow_pickle=True)
-                # Reset memory
-                X_seq.clear()
-                y.clear()
-                counter.value += 1
-                current_size = 0
+        with locker:
+            # Save the file
+            np.save(f'{save_path}/x{counter.value}', X_seq, allow_pickle=True)
+            np.save(f'{save_path}/y{counter.value}', y, allow_pickle=True)
+            # Reset memory
+            X_seq.clear()
+            y.clear()
+            counter.value += 1
 
-    if len(X_seq) != 0 and i+1 < len(X):
-        song = X[i+1]
-        x_, y_ = sequence_method(song, sequence_length, verbose=False)
+    print(f"Song {i+1}'s {sequence_method_name} data processing: complete")
 
-        for x_elem, y_elem in zip(x_, y_):
-            current_size += size_increment
-            # add the sequence to the x and y arrays
-            X_seq.append(x_elem)
-            y.append(y_elem)
-            # save the array once it reaches the correct size
-            if current_size > size_of_array:
-                with locker:
-                    # Save the file
-                    np.save(f'batch_data/{sequence_method_name}/train/x{counter.value}', X_seq, allow_pickle=True)
-                    np.save(f'batch_data/{sequence_method_name}/train/y{counter.value}', y, allow_pickle=True)
-                    # Reset memory
-                    X_seq.clear()
-                    y.clear()
-                    counter.value += 1
-                break
-
-    print(f"Song {i}'s {sequence_method_name} data processing: complete")
 
 """
 def sequence_songs_size(X, sequence_length, sequence_method_name, size_of_array):
@@ -156,24 +134,34 @@ def sequence_songs_size(X, sequence_length, sequence_method_name, size_of_array)
 
 
 def setup(train, val, method):
-    # Setup duration
-    X_val_sequence, y_val_sequence = sequence_songs(val, 70, sequence_method=method, data_multiplier=70 // 3)
-    # Save the validation date to numpy array
-    np.save(f'batch_data/{method}/val/x{0}', X_val_sequence, allow_pickle=True)
-    np.save(f'batch_data/{method}/val/y{0}', y_val_sequence, allow_pickle=True)
+    # Sequence the songs and save to file
+    counter_val_1 = Value('i', 0)
+    lock_1 = Lock()
+
+    num_processes = 6
+    for j in range(0, len(val), num_processes):
+        procs = [Process(target=threaded_sequencing,
+                         args=(i, val, method, f'batch_data/{method}/val/', counter_val_1, lock_1)) for i in
+                 range(j, j + num_processes) if i < len(val)]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join()
+        print('_' * 50)
 
     # choose training song
     # Sequence the songs and save to file
     counter_val = Value('i', 0)
     lock = Lock()
 
-    for j in range(0, len(train), 4):
-        procs = [Process(target=threaded_sequencing, args=(i, train, method, counter_val, lock)) for i in
-                 range(j, j + 4) if i < len(train)]
+    for j in range(0, len(train), num_processes):
+        procs = [Process(target=threaded_sequencing, args=(i, train,method,f'batch_data/{method}/train/', counter_val, lock)) for i in
+                 range(j, j + num_processes) if i < len(train)]
         for p in procs:
             p.start()
         for p in procs:
             p.join()
+        print('_' * 50)
 
 
 if __name__ == '__main__':
