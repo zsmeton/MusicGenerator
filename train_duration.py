@@ -70,13 +70,12 @@ def train_model_duration(lstm_model: Sequential, epochs=200, initial_epoch=0):
 
 if __name__ == '__main__':
 
-    option = get_user_options('What would you like to do',['Train the model', 'Exit'])
+    option = get_user_options('What would you like to do', ['Train the model', 'Exit'])
     while option < 2:
         if option == 1:
-            # Load in the data
 
-            sequence_length = 50
-            model = create_model_duration((sequence_length, read_size_of_data()))
+            # Build the model
+            model = create_model_duration(read_size_of_data())
             model.summary()
 
             if get_user_yes_no('Would you like to resume a training session'):
@@ -90,5 +89,5 @@ if __name__ == '__main__':
                 end_epoch = int(get_user_non_negative_number('How many epochs would you like to run'))
                 train_model_duration(model, epochs=end_epoch)
 
-        option = get_user_options('What would you like to do:',
+        option = get_user_options('What would you like to do',
                                   ['Train the model', 'Exit'])

@@ -129,8 +129,7 @@ if __name__ == '__main__':
         if option == 1:
 
             # create model
-            sequence_length = 50
-            model = create_model_notes((sequence_length, read_size_of_data()))
+            model = create_model_notes(read_size_of_data())
             model.summary()
 
             if get_user_yes_no('Would you like to resume a training session'):
