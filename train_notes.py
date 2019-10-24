@@ -1,6 +1,6 @@
 from keras import Sequential, optimizers
 from keras.callbacks import ModelCheckpoint
-from keras.layers import Activation, Dense, Dropout, LSTM
+from keras.layers import Activation, Dense, Dropout, LSTM, Flatten
 from sklearn.model_selection import train_test_split
 
 from Generator import My_Custom_Generator
@@ -13,21 +13,20 @@ from prep_batch_loading import read_size_of_data
 
 
 def create_model_notes(X_shape) -> Sequential:
-    sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9,nesterov=True)
+    # sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9,nesterov=True)
     lstm_model = Sequential()
     lstm_model.add(LSTM(
         256,
         input_shape=X_shape,
         return_sequences=True,
-        activation='tanh'
+        activation='relu', kernel_initializer='he_uniform'
     ))
-    lstm_model.add(LSTM(256, activation='tanh'))
+    lstm_model.add(LSTM(256, activation='relu', kernel_initializer='he_uniform'))
+    lstm_model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
     lstm_model.add(Dropout(0.5))
-    lstm_model.add(Dense(256, activation='tanh'))
-    lstm_model.add(Dropout(0.5))
-    lstm_model.add(Dense(256, activation='tanh'))
-    lstm_model.add(Dense(128, activation='tanh'))
-    lstm_model.compile(loss='mse', optimizer=sgd, metrics=[rmse])
+    lstm_model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
+    lstm_model.add(Dense(128, activation='sigmoid'))
+    lstm_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     return lstm_model
 
 
@@ -35,10 +34,10 @@ def train_model_notes(lstm_model: Sequential, epochs=200, initial_epoch=0):
     # Set up callbacks
     # Set when to checkpoint
     filepath = "models/notes/note-model-{epoch:02d}-{loss:.4f}.hdf5"
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=False, mode='min')
+    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, mode='min')
 
     # Set up live training plotting
-    plot = PlotLearning('rmse', 'root mean squared error', 'models/notes/notes_logs.txt', 'models/notes/graph_notes')
+    plot = PlotLearning('accuracy', 'accuracy', 'models/notes/notes_logs.txt', 'models/notes/graph_notes')
     callbacks_list = [checkpoint, plot]
 
     # set up training plotting
@@ -131,16 +130,17 @@ if __name__ == '__main__':
             # create model
             model = create_model_notes(read_size_of_data())
             model.summary()
+            print(model.input_shape)
 
             if get_user_yes_no('Would you like to resume a training session'):
                 start_epoch = int(get_user_non_negative_number('What epoch were you on'))
                 end_epoch = int(get_user_non_negative_number('How many epochs would you like to train in total'))
                 filename = get_user_filename("What is the model weight file")
                 model.load_weights(filename)
+                train_model_notes(model, epochs=end_epoch, initial_epoch=start_epoch)
             else:
                 end_epoch = int(get_user_non_negative_number('How many epochs would you like to run'))
-
-            train_model_notes(model, epochs=end_epoch)
+                train_model_notes(model, epochs=end_epoch)
 
         option = get_user_options('What would you like to do:',
                                   ['Train the model', 'Exit'])
