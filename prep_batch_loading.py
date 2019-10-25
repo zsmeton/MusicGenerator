@@ -95,7 +95,7 @@ def setup(train, val, method, sequence_length, size_of_array):
     lock = Lock()
 
     for j in range(0, len(train), num_processes):
-        procs = [Process(target=threaded_sequencing, args=(i, train, method, f'batch_data/{method}/train/', counter_val, lock)) for i in
+        procs = [Process(target=threaded_sequencing, args=(i, train, sequence_length, size_of_array, method, f'batch_data/{method}/train/', counter_val, lock)) for i in
                  range(j, j + num_processes) if i < len(train)]
         for p in procs:
             p.start()
