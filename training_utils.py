@@ -86,8 +86,11 @@ def load_song(song_path: str):
                     # element.pitch.midi
                     thisSlice[element.pitch.midi] = 1
             elif isinstance(element, chord.Chord):
-                for n in element.notes:
-                    thisSlice[n.pitch.midi] = 1
+                if not element.isRest:
+                    for n in element.notes:
+                        thisSlice[n.pitch.midi] = 1
+            else:
+                continue
             thisSlice[-1] = value
             notes.append(thisSlice)
             thisSlice = np.zeros(129, dtype=float)
