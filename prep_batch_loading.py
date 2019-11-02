@@ -47,9 +47,10 @@ def threaded_sequencing(i, X, sequence_length, size_of_array, sequence_method_na
     # Chunk sequences into n sequences each of size of array
     x_temp, y_temp = sequence_method(X[0], sequence_length, verbose=False)
     size_increment = (size_of_numpy_array(x_temp[0]) + size_of_numpy_array(y_temp[0])) / 1e6
+    step = int(size_of_array / size_increment)
     x_temp = None
     y_temp = None
-    step = int(size_of_array/size_increment)
+
 
     # Build array of all sequences
     # Sequence a song
@@ -116,10 +117,11 @@ def note_lookup_dict(filename):
 if __name__ == '__main__':
     freeze_support()
 
-    sequence_length = 50
+    sequence_length = 75
     size_of_array = 15
     X_train, X_val = getX_train_val()
     save_size_of_data((sequence_length, X_train[0].shape[1]))
+
 
     # Clear old data
     for i in ['batch_data/duration/train', 'batch_data/duration/val', 'batch_data/notes/train', 'batch_data/notes/val']:

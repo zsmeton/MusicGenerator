@@ -74,26 +74,22 @@ def load_song(song_path: str):
         notes_to_parse = midi.flat.notes
     if notes_to_parse:
         for element in notes_to_parse:
-            # This gets me when the note is played
-            # element.offset
-            value = element.offset - lastOffset
-            lastOffset = element.offset
-
-            # set slice values
+            if lastOffset != element.offset:
+                # This gets me when the note is played
+                # element.offset
+                value = element.offset - lastOffset
+                lastOffset = element.offset
+                notes.append(thisSlice)
+                thisSlice = np.zeros(129, dtype=float)
             if isinstance(element, note.Note):
                 if not element.isRest:
                     # This gets me the note played in midi
                     # element.pitch.midi
                     thisSlice[element.pitch.midi] = 1
             elif isinstance(element, chord.Chord):
-                if not element.isRest:
-                    for n in element.notes:
-                        thisSlice[n.pitch.midi] = 1
-            else:
-                continue
+                for n in element.notes:
+                    thisSlice[n.pitch.midi] = 1
             thisSlice[-1] = value
-            notes.append(thisSlice)
-            thisSlice = np.zeros(129, dtype=float)
     return notes
 
 
