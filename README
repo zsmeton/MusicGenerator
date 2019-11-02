@@ -6,3 +6,7 @@ Zachary Smeton
 Brooke Lutsch
 Amanda Hanson
 Philip Emmette
+
+## TODOS
+- Create auto encoder for notes (lower # of labels -> better training)
+  (the model learns to output all 0s when instance labels << # of possible labels)

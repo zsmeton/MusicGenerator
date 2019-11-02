@@ -28,7 +28,10 @@ def see_note_distribution():
                         note_distribution[i] += 1
     x = np.arange(len(note_distribution))
     plt.bar(x, note_distribution)
+    plt.title('Note Distribution')
+    plt.savefig('visuals/note_distribution.png')
     plt.show()
+
 
 
 def notes_in_scale():
@@ -36,7 +39,7 @@ def notes_in_scale():
     for song_name in tqdm(glob.glob('midi_songs/training/*'), desc='Analyzing pitch distribution based on song key'):
         midi = converter.parse(song_name)
         key = midi.analyze('key')
-        dict_lookup = f"{key.tonic.name} {key.mode}"
+        dict_lookup = f"{key.tonic.name}-{key.mode}"
         if dict_lookup in key_distribution:
             curr_distribution = key_distribution[dict_lookup]
             song = load_song(song_name)
@@ -69,8 +72,10 @@ def notes_in_scale():
         plt.title(key)
 
         plt.xticks(x[::5], ticks[::5])
+        plt.savefig(f'visuals/{key}_distribution.png')
         plt.show()
 
 
 if __name__ == '__main__':
+    see_note_distribution()
     notes_in_scale()
