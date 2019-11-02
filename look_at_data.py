@@ -48,12 +48,13 @@ def notes_in_scale():
 
         else:
             song = load_song(song_name)
-            init_distribution = [int(i) for i in song[0][:-1]]
-            for part in song[1:]:
-                for i, played in enumerate(part[:-1]):
-                    if played > 0:
-                        init_distribution[i] += 1
-            key_distribution[dict_lookup] = init_distribution
+            if len(song) > 0:
+                init_distribution = [int(i) for i in song[0][:-1]]
+                for part in song[1:]:
+                    for i, played in enumerate(part[:-1]):
+                        if played > 0:
+                            init_distribution[i] += 1
+                key_distribution[dict_lookup] = init_distribution
 
     x = np.arange(128)
     c = pitch.Pitch('C4')
@@ -63,7 +64,7 @@ def notes_in_scale():
         ticks.append(c.name)
 
     for key, distribution in key_distribution.items():
-
+        print(f'{key}:', distribution)
         plt.bar(x, distribution)
         plt.title(key)
 
