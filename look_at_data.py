@@ -33,6 +33,20 @@ def see_note_distribution():
     plt.show()
 
 
+def notes_per_timestep():
+    timestep_distribution = dict()
+    X_train = np.load('X_train.npy', allow_pickle=True)
+    for song in X_train:
+        for part in song:
+            if sum(part[:-1]) in timestep_distribution:
+                timestep_distribution[sum(part[:-1])] += 1
+            else:
+                timestep_distribution[sum(part[:-1])] = 1
+    plt.bar(timestep_distribution.keys(), timestep_distribution.values())
+    plt.savefig(f'visuals/note_timestep_distribution.png')
+    plt.title("Distribution of notes per timestep")
+    plt.show()
+
 
 def notes_in_scale():
     key_distribution = dict()
@@ -77,5 +91,6 @@ def notes_in_scale():
 
 
 if __name__ == '__main__':
-    see_note_distribution()
-    notes_in_scale()
+    #see_note_distribution()
+    #notes_in_scale()
+    notes_per_timestep()
