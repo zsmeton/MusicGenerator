@@ -19,12 +19,12 @@ def create_model_duration(X_shape) -> Sequential:
         256,
         input_shape=X_shape,
         return_sequences=True,
-        activation='relu', kernel_initializer='he_uniform'
+        activation='sigmoid', kernel_initializer='he_uniform'
     ))
-    lstm_model.add(SimpleRNN(512, activation='relu', kernel_initializer='he_uniform'))
+    lstm_model.add(SimpleRNN(512, activation='sigmoid', kernel_initializer='he_uniform'))
     lstm_model.add(Dropout(0.5))
-    lstm_model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
-    lstm_model.add(Dense(1, activation='relu', kernel_initializer='he_uniform'))
+    lstm_model.add(Dense(256, activation='sigmoid', kernel_initializer='he_uniform'))
+    lstm_model.add(Dense(1, activation='sigmoid', kernel_initializer='he_uniform'))
     lstm_model.compile(loss='mse', optimizer='adam', metrics=[rmse])
     return lstm_model
 
