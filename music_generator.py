@@ -17,7 +17,7 @@ def get_notes(song):
     return [slice[:-1] for slice in song]
 
 
-def round_cutoff(num, cutoff = 0.9):
+def round_cutoff(num, cutoff = 0.3):
     """
     Turns a number into 1 >= cutoff or 0 if < cutoff
     :param num: number to 'round'
@@ -51,7 +51,7 @@ def generate_music(duration_model: Sequential, notes_model: Sequential, seed_son
         predicted_notes = normalize(predicted_notes[:, np.newaxis], axis=0).ravel()
         random_pred_notes = np.zeros(predicted_notes.shape)
         for i in range(number_of_notes):
-            index = random.choices(range(predicted_notes.shape), weights=predicted_notes)
+            index = random.choices(range(predicted_notes.shape[0]), weights=predicted_notes)
             random_pred_notes[index] = 1
         random_pred_notes = list(random_pred_notes)
 
@@ -105,10 +105,10 @@ if __name__ == "__main__":
     option = user_input.get_user_options('What would you like to do', ['Generate music', 'Exit'])
     while option < 2:
         # get the song and model files
-        seed_song_file = 'midi_songs/training/bach_847.mid' # user_input.get_user_filename('Path to seed song', '.mid')
+        seed_song_file = 'midi_songs/testing/ff7themep.mid' # user_input.get_user_filename('Path to seed song', '.mid')
         duration_model_file = 'models/duration/duration-model-20-0.0936.hdf5' # user_input.get_user_filename('Path to duration model', '.hdf5')
-        notes_model_file = 'models/notes/note-model-03-0.0675.hdf5' # user_input.get_user_filename('Path to notes model', '.hdf5')
-        save_filename = 'songs/song7-bach'  # user_input.get_user_filename('Path to notes model', '.hdf5')
+        notes_model_file = 'models/notes/note-model-06-0.2134.hdf5' # user_input.get_user_filename('Path to notes model', '.hdf5')
+        save_filename = 'songs/song1-ff'  # user_input.get_user_filename('Path to notes model', '.hdf5')
         # get length of song to generate
         length = 120 # int(user_input.get_user_non_negative_number('How long should the song be in seconds'))
         while length <= 0:

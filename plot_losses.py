@@ -82,13 +82,11 @@ class PlotLearning(Callback):
             f, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
             ax1.plot(self.x, self.losses, label="loss")
             ax1.plot(self.x, self.val_losses, label="validation loss")
-            ax1.set_yscale('log')
             ax1.legend()
 
             ax2.plot(self.x, self.acc, label=f"{self.metric_desc}")
             ax2.plot(self.x, self.val_acc, label=f"validation {self.metric_desc}")
             ax2.plot(self.val_acc.index(min(self.val_acc)), min(self.val_acc), )
-            ax2.set_yscale('log')
             ax2.legend()
 
             plt.savefig(self.graph_name)

@@ -117,7 +117,7 @@ def note_lookup_dict(filename):
 if __name__ == '__main__':
     freeze_support()
 
-    sequence_length = 75
+    sequence_length = 50
     size_of_array = 15
     X_train, X_val = getX_train_val()
     save_size_of_data((sequence_length, X_train[0].shape[1]))
