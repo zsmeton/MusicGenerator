@@ -53,7 +53,7 @@ class Generator:
                 beat.append(seconds_per_measure - sum(beat))
             else:
                 beat.append(duration)
-        
+
         beat = [x / (((self.bpm / 60) / self.beats) * self.note_type) for x in beat]
 
         #Once beat has value seconds_per_measure, return it
@@ -76,14 +76,14 @@ class Generator:
             new_note += 24
         elif octave_offset > 0.8:
             new_note += 12
-        
+
         free_note_offset = random.random()
 
         if free_note_offset > self.p_free_note:
             new_note -= 1
         elif free_note_offset > self.p_free_note:
             new_note += 1
-        
+
         notes.append(new_note)
 
         #Generate a chord if probability is met
@@ -138,7 +138,7 @@ class Generator:
         return notes
 
     def generate_music(self, n_bars):
-        sequence = np.array([])
+        sequence = None
         for i in range(0, n_bars):
             this_bar = self.create_rhythm()
             for j in this_bar:
@@ -150,12 +150,15 @@ class Generator:
 
                 #This is what I am talking about. The array is not appended to the end of the pressed keys sequence.
                 print(this_snapshot)
-                np.append(sequence, this_snapshot)
-        
+                if sequence is None:
+                    sequence = np.array([this_snapshot])
+                else:
+                    sequence = np.append(sequence, np.array([this_snapshot]), axis=0)
+
         return sequence
 
 
 
 generator = Generator()
-notes = generator.generate_music(1)
+notes = generator.generate_music(5)
 print(notes)
