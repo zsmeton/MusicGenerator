@@ -128,7 +128,7 @@ def get_sequences_notes(notes, in_length, out_length, data_multiplier=None, verb
     for i in tqdm(range(0, int(len(notes) - in_length - out_length - 1), int(multiplier)),
                   desc='Segmenting songs into sequences', disable=(not verbose)):
         sequence_in = notes[i:i + in_length]
-        sequence_out = notes[i + in_length:i + in_length + out_length + 1]
+        sequence_out = notes[i + in_length:i + in_length + out_length]
         X.append(sequence_in)
         y.append([i[:-1] for i in sequence_out])
 
@@ -176,7 +176,7 @@ def setup(train, val, in_length, out_length, size_of_array):
     counter_val_1 = Value('i', 0)
     lock_1 = Lock()
 
-    num_processes = 6
+    num_processes = 4
     for j in range(0, len(val), num_processes):
         procs = [Process(target=threaded_sequencing,
                          args=(i, val, in_length, out_length, size_of_array, f'batch_data/notes/val/', counter_val_1, lock_1)) for i in
