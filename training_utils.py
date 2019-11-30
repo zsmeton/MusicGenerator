@@ -3,6 +3,8 @@ import glob
 import numpy as np
 from tqdm import tqdm
 from keras import backend
+import keras.backend.tensorflow_backend as tfb
+import tensorflow as tf
 import random
 from collections.abc import Mapping, Iterable
 from sys import getsizeof
@@ -195,6 +197,29 @@ def r2_keras(y_true, y_pred):
     SS_res = backend.mean(backend.square(y_true - y_pred))
     SS_tot = backend.mean(backend.square(y_true - backend.mean(y_true)))
     return 1 - SS_res / (SS_tot + backend.epsilon())
+
+
+POS_WEIGHT = 5  # multiplier for positive targets, needs to be tuned
+def weighted_binary_crossentropy(target, output):
+    """
+    Weighted binary crossentropy between an output tensor
+    and a target tensor. POS_WEIGHT is used as a multiplier
+    for the positive targets.
+
+    Combination of the following functions:
+    * keras.losses.binary_crossentropy
+    * keras.backend.tensorflow_backend.binary_crossentropy
+    * tf.nn.weighted_cross_entropy_with_logits
+    """
+    # transform back to logits
+    _epsilon = tfb._to_tensor(tfb.epsilon(), output.dtype.base_dtype)
+    output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
+    output = tf.math.log(output / (1 - output))
+    # compute weighted loss
+    loss = tf.nn.weighted_cross_entropy_with_logits(labels=target,
+                                                    logits=output,
+                                                    pos_weight=POS_WEIGHT)
+    return tf.math.reduce_mean(loss, axis=-1)
 
 
 def getX_train_val():

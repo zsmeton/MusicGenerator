@@ -16,25 +16,28 @@ def create_model_notes(X_shape) -> Sequential:
     # sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9,nesterov=True)
     lstm_model = Sequential()
     lstm_model.add(LSTM(
-        256,
+        512,
         input_shape=X_shape,
         return_sequences=True,
-        activation='sigmoid', kernel_initializer='he_uniform'
+        activation='relu', kernel_initializer='he_uniform', recurrent_dropout=0.1, dropout=0.1
     ))
-    lstm_model.add(LSTM(256, activation='sigmoid', kernel_initializer='he_uniform'))
-    lstm_model.add(Dense(256, activation='sigmoid', kernel_initializer='he_uniform'))
-    lstm_model.add(Dropout(0.5))
-    lstm_model.add(Dense(256, activation='sigmoid', kernel_initializer='he_uniform'))
+    lstm_model.add(LSTM(256, activation='relu', kernel_initializer='he_uniform', recurrent_dropout=0.1, dropout=0.1))
+    lstm_model.add(Dropout(0.3))
+    lstm_model.add(LSTM(256, activation='relu', kernel_initializer='he_uniform', recurrent_dropout=0.1, dropout=0.1))
+    lstm_model.add(Dropout(0.3))
+    lstm_model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
+    lstm_model.add(Dropout(0.3))
+    lstm_model.add(Dense(256, activation='tanh'))
     lstm_model.add(Dense(128, activation='sigmoid'))
-    lstm_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    lstm_model.compile(loss=weighted_binary_crossentropy, optimizer='adam', metrics=['accuracy'])
     return lstm_model
 
 
 def train_model_notes(lstm_model: Sequential, epochs=200, initial_epoch=0):
     # Set up callbacks
     # Set when to checkpoint
-    filepath = "models/notes/note-model-{epoch:02d}-{loss:.4f}.hdf5"
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, mode='min')
+    filepath = "models/notes/note-model-{epoch:02d}-{accuracy:.4f}.hdf5"
+    checkpoint = ModelCheckpoint(filepath, monitor='accuracy', verbose=0, save_best_only=False, mode='max')
 
     # Set up live training plotting
     plot = PlotLearning('accuracy', 'accuracy', 'models/notes/notes_logs.txt', 'models/notes/graph_notes')
