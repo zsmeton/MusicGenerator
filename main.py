@@ -62,6 +62,7 @@ def get_sequences(notes, sequence_length=90) -> (np.ndarray, np.ndarray, int, se
 
     # normalize input
     n_vocab = len(set(notes))  # get amount of pitch names
+    print("n_vocab is: ",n_vocab)
     X = X / float(n_vocab)
 
     # one-hot code the output
@@ -73,33 +74,27 @@ def get_sequences(notes, sequence_length=90) -> (np.ndarray, np.ndarray, int, se
 
 def create_model(X_shape, n_vocab) -> Sequential:
     lstm_model = Sequential()
-    lstm_model.add(LSTM(
-        256,
-        input_shape=X_shape,
-        return_sequences=True, activation='softsign'
-    ))
-    lstm_model.add(Dropout(0.2))
-    lstm_model.add(LSTM(512, return_sequences=True, activation='softsign'))
-    lstm_model.add(Dropout(0.2))
-    lstm_model.add(LSTM(256, return_sequences=True, activation='softsign'))
-    lstm_model.add(Dropout(0.2))
-    lstm_model.add(LSTM(256, activation='softsign'))
+    lstm_model.add(LSTM(1024, input_shape=X_shape, return_sequences=True, activation='relu'))
+    lstm_model.add(Dropout(0.5))
+    lstm_model.add(LSTM(512, return_sequences=True, activation='relu'))
+    lstm_model.add(Dropout(0.25))
+    lstm_model.add(LSTM(256, activation='relu'))
     lstm_model.add(Dense(256))
-    lstm_model.add(Dropout(0.3))
+    lstm_model.add(Dropout(0.1))
     lstm_model.add(Dense(n_vocab))
     lstm_model.add(Activation('softmax'))
-    lstm_model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['categorical_accuracy'])
+    lstm_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy', 'accuracy'])
     return lstm_model
 
 
-def train_model(lstm_model: Sequential, X: np.ndarray, y: np.ndarray, loadpath='', epoch_start=0, epochs=200,
+def train_model(lstm_model: Sequential, X: np.ndarray, y: np.ndarray, loadpath='', epoch_start=0, epochs=1,
                 validation_size=0.2):
     # Split data into train and test data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=validation_size, random_state=1)
 
     # Set up callbacks
     # Set when to checkpoint
-    filepath = "weights-improvement-{epoch:02d}-{loss:.4f}-bigger.hdf5"
+    filepath = "lstm-weights.hdf5"
     checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=True, mode='min')
     # Set up live training plotting
     plot = PlotLearning()
@@ -116,9 +111,17 @@ def train_model(lstm_model: Sequential, X: np.ndarray, y: np.ndarray, loadpath='
 
     train_history = lstm_model.fit(X_train, y_train, validation_data=(X_test, y_test),
                                    epochs=epochs,
-                                   initial_epoch=epoch_start, batch_size=64,
+                                   initial_epoch=epoch_start, batch_size=2048,
                                    callbacks=callbacks_list, validation_freq=1, verbose=1)
 
+def sample(preds, temperature=1.0):
+    preds = np.asarray(preds).astype('float64')
+    preds = np.log(preds) / temperature
+    exp_preds = np.exp(preds)
+    preds = exp_preds / np.sum(exp_preds)
+    probas = np.random.multinomial(1, preds, 1)
+    #print(preds.flatten().shape, probas.shape, np.sum(preds))
+    return np.random.choice(range(0, len(preds.flatten())), p=preds.flatten())
 
 def generate_music(l_model, starter_notes=30, save_file='test_output'):
     notes = load_notes()
@@ -139,7 +142,10 @@ def generate_music(l_model, starter_notes=30, save_file='test_output'):
         prediction_input = np.reshape(pattern, (1, len(pattern), 1))
         prediction_input = prediction_input / float(n_vocab[0])
         prediction = l_model.predict(prediction_input, verbose=0)
-        index = np.argmax(prediction)
+        #pick note with likelyhood predicted rather than max
+
+        index = sample(prediction, temperature=1.1)
+        
         result = int_to_note[index]
         prediction_output.append(result)
         pattern.append(index)
@@ -175,7 +181,7 @@ def generate_music(l_model, starter_notes=30, save_file='test_output'):
 
 if __name__ == '__main__':
     # Model file
-    model_file = 'weights-improvement-60-1.9965-bigger.hdf5'
+    model_file = "lstm-weights.hdf5"
     #  load in data
     X, y, n_vocab = None, None, None
     if not glob.glob("X.npy") or not glob.glob("Y.npy") or not glob.glob("vocab.npy"):
