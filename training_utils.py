@@ -3,11 +3,13 @@ import glob
 import numpy as np
 from tqdm import tqdm
 from keras import backend
+import keras.backend.tensorflow_backend as tfb
+import tensorflow as tf
 import random
-from collections import Mapping, Iterable
+from collections.abc import Mapping, Iterable
 from sys import getsizeof
-from user_input import get_user_options, get_user_non_negative_number_or_default, get_user_yes_no, \
-    get_user_non_negative_number, get_user_filename
+from user_input import get_user_non_negative_number_or_default, get_user_yes_no
+
 
 def randomize(x:list, n_iters=100):
     for i in range(n_iters):
@@ -60,7 +62,7 @@ def load_song(song_path: str):
     notes_to_parse = None
     parts = instrument.partitionByInstrument(midi)
 
-    # Create 1 x 89 np array
+    # Create 1 x 129 np array [0-127] note [128] duration
     thisSlice = np.zeros(129, dtype=float)
     lastOffset = 0.0
     value = 0.0
@@ -79,16 +81,17 @@ def load_song(song_path: str):
                 # element.offset
                 value = element.offset - lastOffset
                 lastOffset = element.offset
+                notes.append(thisSlice)
+                thisSlice = np.zeros(129, dtype=float)
             if isinstance(element, note.Note):
-                # This gets me the note played in midi
-                # element.pitch.midi
-                thisSlice[element.pitch.midi - 1] = 1
+                if not element.isRest:
+                    # This gets me the note played in midi
+                    # element.pitch.midi
+                    thisSlice[element.pitch.midi] = 1
             elif isinstance(element, chord.Chord):
                 for n in element.notes:
-                    thisSlice[n.pitch.midi - 1] = 1
+                    thisSlice[n.pitch.midi] = 1
             thisSlice[-1] = value
-            notes.append(thisSlice)
-            thisSlice = np.zeros(129, dtype=float)
     return notes
 
 
@@ -196,18 +199,41 @@ def r2_keras(y_true, y_pred):
     return 1 - SS_res / (SS_tot + backend.epsilon())
 
 
+POS_WEIGHT = 5  # multiplier for positive targets, needs to be tuned
+def weighted_binary_crossentropy(target, output):
+    """
+    Weighted binary crossentropy between an output tensor
+    and a target tensor. POS_WEIGHT is used as a multiplier
+    for the positive targets.
+
+    Combination of the following functions:
+    * keras.losses.binary_crossentropy
+    * keras.backend.tensorflow_backend.binary_crossentropy
+    * tf.nn.weighted_cross_entropy_with_logits
+    """
+    # transform back to logits
+    _epsilon = tfb._to_tensor(tfb.epsilon(), output.dtype.base_dtype)
+    output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
+    output = tf.math.log(output / (1 - output))
+    # compute weighted loss
+    loss = tf.nn.weighted_cross_entropy_with_logits(labels=target,
+                                                    logits=output,
+                                                    pos_weight=POS_WEIGHT)
+    return tf.math.reduce_mean(loss, axis=-1)
+
+
 def getX_train_val():
     if glob.glob('X_train.npy') and glob.glob('X_val.npy') and get_user_yes_no(
             'Would you like to load the songs from memory'):
-        X_train = np.load('X_train.npy')
-        X_val = np.load('X_val.npy')
+        X_train = np.load('X_train.npy', allow_pickle=True)
+        X_val = np.load('X_val.npy', allow_pickle=True)
     else:
         num_train = get_user_non_negative_number_or_default('How many training files do you want to load',
                                                             default_message='to load all files')
         X_train = load_notes('midi_songs/training', num_train)
-        X_val = load_notes('midi_songs/validation')
+        X_val = load_notes('midi_songs/testing')
         if get_user_yes_no('Would you like to save the loaded data to memory'):
-            np.save('X_train.npy', X_train)
-            np.save('X_val.npy', X_val)
+            np.save('X_train.npy', X_train, allow_pickle=True)
+            np.save('X_val.npy', X_val, allow_pickle=True)
 
     return X_train, X_val
