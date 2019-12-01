@@ -49,8 +49,11 @@ def size_of_numpy_array(arr: np.array):
 
 def load_song(path):
     notes = []
+    # load in the song
+    avg_duration = 0
     try:
         midi = converter.parse(path)
+        avg_duration += midi.quarterLength
         notes_to_parse = None
         parts = instrument.partitionByInstrument(midi)
 
@@ -61,12 +64,13 @@ def load_song(path):
         else:  # file has notes in a flat structure
             notes_to_parse = midi.flat.notes
         if notes_to_parse:
+            avg_duration /= len(notes_to_parse)
             for element in notes_to_parse:
                 if isinstance(element, note.Note):
                     notes.append(str(element.pitch))
                 elif isinstance(element, chord.Chord):
                     notes.append('.'.join(str(n) for n in element.normalOrder))
-        return notes
+        return notes, avg_duration
 
     except music21.midi.MidiException as e:
         print(f"[ERROR]: Bad MIDI file, please remove {path}")
@@ -78,7 +82,7 @@ def load_notes(path):
     songs = []
     song_files = glob.glob(f"{path}/*.mid")
     for i, file in tqdm(enumerate(song_files), desc='Loading in songs'):
-        notes = load_song(file)
+        notes,_ = load_song(file)
         if notes:
             songs.append(notes)
 

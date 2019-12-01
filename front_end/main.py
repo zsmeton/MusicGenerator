@@ -11,14 +11,14 @@ import time
 n = 2
 
 
-def thread_generate(input_file, output_file, temperature):
+def thread_generate(input_file, output_file, length, temperature):
     n_vocab = len(read_pitchnames())  # get amount of pitch names
     model = create_model(read_size_of_data(), n_vocab)
     model.summary()
     model.load_weights("../files/models/notes/model-12-4.7494.hdf5")
 
     # Generate music
-    generate_music(model, input_file, output_file, temperature)
+    generate_music(model, input_file, output_file, length, temperature=temperature)
 
 
 class Application(Frame):
@@ -133,12 +133,12 @@ class Application(Frame):
         print(self.last_save_location)
 
         # generate music on a thread
-        p = Process(target=thread_generate, args=(self.file, self.last_save_location, self.get_randomness.get()))
+        p = Process(target=thread_generate, args=(self.file, self.last_save_location, self.time, self.get_randomness.get()))
         p.start()
         # Start loading bar
         progress = Progressbar(self, orient=HORIZONTAL,
-                               length=300, mode='indeterminate')
-        progress.grid(row=n+6, column=0, columnspan=2, padx=5, pady=5)
+                               length=300, mode='indeterminate', label='Generating Music...')
+        progress.grid(row=n+6, column=0, columnspan=2)
 
         # animate loading bar going left to right while music is being generated
         last_time = time.time()
