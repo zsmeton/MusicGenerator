@@ -114,14 +114,17 @@ def train_model(lstm_model: Sequential, X: np.ndarray, y: np.ndarray, loadpath='
                                    initial_epoch=epoch_start, batch_size=2048,
                                    callbacks=callbacks_list, validation_freq=1, verbose=1)
 
-def sample(preds, temperature=1.0):
-    preds = np.asarray(preds).astype('float64')
-    preds = np.log(preds) / temperature
-    exp_preds = np.exp(preds)
-    preds = exp_preds / np.sum(exp_preds)
-    probas = np.random.multinomial(1, preds, 1)
-    #print(preds.flatten().shape, probas.shape, np.sum(preds))
-    return np.random.choice(range(0, len(preds.flatten())), p=preds.flatten())
+def sample(predictions, temperature=1.0):
+    predictions = np.asarray(predictions).astype('float64')
+    predictions = np.log(predictions) / temperature
+    exp_predictions = np.exp(predictions)
+    predictions = exp_predictions / np.sum(exp_predictions)
+    probabilities = np.random.multinomial(1, predictions, 1)
+    #print(predictions.flatten().shape, probabilities.shape, np.sum(predictions))
+    # This return statement give us more variety, but it doesn't always sound great
+    return np.random.choice(range(0, len(predictions.flatten())), p=predictions.flatten())
+    # This return statement should be more predictable. On my computer, it only ever generates a single note, the training might have been off
+    #return np.argmax(probabilities)
 
 def generate_music(l_model, starter_notes=30, save_file='test_output'):
     notes = load_notes()
@@ -145,7 +148,7 @@ def generate_music(l_model, starter_notes=30, save_file='test_output'):
         #pick note with likelyhood predicted rather than max
 
         index = sample(prediction, temperature=1.1)
-        
+
         result = int_to_note[index]
         prediction_output.append(result)
         pattern.append(index)
