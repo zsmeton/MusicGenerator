@@ -1,63 +1,60 @@
-from keras import Sequential, optimizers
-from keras.callbacks import ModelCheckpoint
-from keras.layers import Activation, Dense, Dropout, LSTM, Flatten
-from sklearn.model_selection import train_test_split
+import glob
 
-from Generator import My_Custom_Generator
-from plot_losses import PlotLearning
-from training_utils import *
-from user_input import get_user_options, get_user_non_negative_number_or_default, get_user_yes_no, \
+from keras import Sequential
+from keras.callbacks import ModelCheckpoint
+from keras.layers import Activation, Dense, Dropout, LSTM, Embedding
+
+from include.Generator import My_Custom_Generator
+from include.plot_losses import PlotLearning
+from include.user_input import get_user_options, get_user_yes_no, \
     get_user_non_negative_number, get_user_filename
 
-from prep_batch_loading import read_size_of_data
+from src.prep_batch_loading import read_size_of_data, read_pitchnames
 
 
-def create_model_notes(X_shape) -> Sequential:
-    # sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9,nesterov=True)
+def create_model_notes(X_shape, n_vocab, embedding_dim=512) -> Sequential:
     lstm_model = Sequential()
+    lstm_model.add(Embedding(input_dim=n_vocab, input_length=X_shape[0], output_dim=embedding_dim, mask_zero=True))
     lstm_model.add(LSTM(
-        512,
-        input_shape=X_shape,
+        embedding_dim,
         return_sequences=True,
-        activation='relu', kernel_initializer='he_uniform', recurrent_dropout=0.1, dropout=0.1
+        activation='tanh', kernel_initializer='he_uniform', dropout=0.2
     ))
-    lstm_model.add(LSTM(256, activation='relu', kernel_initializer='he_uniform', recurrent_dropout=0.1, dropout=0.1))
     lstm_model.add(Dropout(0.3))
-    lstm_model.add(LSTM(256, activation='relu', kernel_initializer='he_uniform', recurrent_dropout=0.1, dropout=0.1))
-    lstm_model.add(Dropout(0.3))
-    lstm_model.add(Dense(256, activation='relu', kernel_initializer='he_uniform'))
-    lstm_model.add(Dropout(0.3))
-    lstm_model.add(Dense(256, activation='tanh'))
-    lstm_model.add(Dense(128, activation='sigmoid'))
-    lstm_model.compile(loss=weighted_binary_crossentropy, optimizer='adam', metrics=['accuracy'])
+    lstm_model.add(LSTM(490, return_sequences=True, activation='relu', dropout=0.2))
+    lstm_model.add(Dropout(0.2))
+    lstm_model.add(LSTM(4*n_vocab//5, activation='relu', dropout=0.2))
+    lstm_model.add(Dense(n_vocab))
+    lstm_model.add(Activation('softmax'))
+    lstm_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
     return lstm_model
 
 
 def train_model_notes(lstm_model: Sequential, epochs=200, initial_epoch=0):
     # Set up callbacks
     # Set when to checkpoint
-    filepath = "models/notes/note-model-{epoch:02d}-{accuracy:.4f}.hdf5"
-    checkpoint = ModelCheckpoint(filepath, monitor='accuracy', verbose=0, save_best_only=False, mode='max')
+    filepath = "files/models/notes/model-{epoch:02d}-{loss:.4f}.hdf5"
+    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_best_only=False, mode='min')
 
     # Set up live training plotting
-    plot = PlotLearning('accuracy', 'accuracy', 'models/notes/notes_logs.txt', 'models/notes/graph_notes')
+    plot = PlotLearning('categorical_accuracy', 'categorical accuracy', 'models/notes/notes_logs.txt', 'models/notes/graph_notes')
     callbacks_list = [checkpoint, plot]
 
     # set up training plotting
     plot.on_train_begin()
-    if glob.glob('models/notes/notes_logs.txt') and initial_epoch != 0:
-        plot.load_in_data('models/notes/notes_logs.txt')
+    if glob.glob('files/models/notes/notes_logs.txt') and initial_epoch != 0:
+        plot.load_in_data('files/models/notes/notes_logs.txt')
 
     train_batch_size = 1
-    train_x_files = glob.glob('batch_data/notes/train/x*')
-    train_y_files = glob.glob('batch_data/notes/train/y*')
+    train_x_files = glob.glob('files/batch_data/train/x*')
+    train_y_files = glob.glob('files/batch_data/train/y*')
     if len(train_x_files) != len(train_y_files):
         raise FileExistsError("The number of x and y values for training is not the same")
     my_training_batch_generator = My_Custom_Generator(train_x_files, train_y_files, train_batch_size)
 
     val_batch_size = 1
-    val_x_files = glob.glob('batch_data/notes/val/x*')
-    val_y_files = glob.glob('batch_data/notes/val/y*')
+    val_x_files = glob.glob('files/batch_data/val/x*')
+    val_y_files = glob.glob('files/batch_data/val/y*')
     if len(val_x_files) != len(val_y_files):
         raise FileExistsError("The number of x and y values for validation is not the same")
     my_validation_batch_generator = My_Custom_Generator(val_x_files, val_y_files, val_batch_size)
@@ -66,10 +63,8 @@ def train_model_notes(lstm_model: Sequential, epochs=200, initial_epoch=0):
                         steps_per_epoch=len(my_training_batch_generator),
                         epochs=epochs,
                         initial_epoch=initial_epoch,
-                        verbose=1,
                         validation_data=my_validation_batch_generator,
                         validation_steps=len(my_validation_batch_generator), callbacks=callbacks_list)
-
 
 """
 def generate_music(l_model, starter_notes=30, save_file='test_output'):
@@ -131,9 +126,14 @@ if __name__ == '__main__':
         if option == 1:
 
             # create model
-            model = create_model_notes(read_size_of_data())
+
+            n_vocab = len(read_pitchnames())
+
+            model = create_model_notes(read_size_of_data(), n_vocab)
             model.summary()
             print(model.input_shape)
+            print(read_size_of_data(), read_pitchnames())
+            print(n_vocab)
 
             if get_user_yes_no('Would you like to resume a training session'):
                 start_epoch = int(get_user_non_negative_number('What epoch were you on'))
