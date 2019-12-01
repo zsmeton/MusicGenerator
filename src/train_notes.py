@@ -12,7 +12,7 @@ from include.user_input import get_user_options, get_user_yes_no, \
 from src.prep_batch_loading import read_size_of_data, read_pitchnames
 
 
-def create_model_notes(X_shape, n_vocab, embedding_dim=512) -> Sequential:
+def create_model(X_shape, n_vocab, embedding_dim=512) -> Sequential:
     lstm_model = Sequential()
     lstm_model.add(Embedding(input_dim=n_vocab, input_length=X_shape[0], output_dim=embedding_dim, mask_zero=True))
     lstm_model.add(LSTM(
@@ -23,14 +23,14 @@ def create_model_notes(X_shape, n_vocab, embedding_dim=512) -> Sequential:
     lstm_model.add(Dropout(0.3))
     lstm_model.add(LSTM(490, return_sequences=True, activation='relu', dropout=0.2))
     lstm_model.add(Dropout(0.2))
-    lstm_model.add(LSTM(4*n_vocab//5, activation='relu', dropout=0.2))
+    lstm_model.add(LSTM(2*n_vocab//3, activation='relu', dropout=0.2))
     lstm_model.add(Dense(n_vocab))
     lstm_model.add(Activation('softmax'))
     lstm_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
     return lstm_model
 
 
-def train_model_notes(lstm_model: Sequential, epochs=200, initial_epoch=0):
+def train_model(lstm_model: Sequential, epochs=200, initial_epoch=0):
     # Set up callbacks
     # Set when to checkpoint
     filepath = "files/models/notes/model-{epoch:02d}-{loss:.4f}.hdf5"
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 
             n_vocab = len(read_pitchnames())
 
-            model = create_model_notes(read_size_of_data(), n_vocab)
+            model = create_model(read_size_of_data(), n_vocab)
             model.summary()
             print(model.input_shape)
             print(read_size_of_data(), read_pitchnames())
@@ -140,10 +140,10 @@ if __name__ == '__main__':
                 end_epoch = int(get_user_non_negative_number('How many epochs would you like to train in total'))
                 filename = get_user_filename("What is the model weight file")
                 model.load_weights(filename)
-                train_model_notes(model, epochs=end_epoch, initial_epoch=start_epoch)
+                train_model(model, epochs=end_epoch, initial_epoch=start_epoch)
             else:
                 end_epoch = int(get_user_non_negative_number('How many epochs would you like to run'))
-                train_model_notes(model, epochs=end_epoch)
+                train_model(model, epochs=end_epoch)
 
         option = get_user_options('What would you like to do:',
                                   ['Train the model', 'Exit'])

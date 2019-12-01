@@ -18,7 +18,7 @@ def save_size_of_data(size):
 
 
 def read_size_of_data():
-    with open('files/batch_data/shape.txt', 'r') as fin:
+    with open('../files/batch_data/shape.txt', 'r') as fin:
         return eval(fin.readline())
 
 
@@ -28,7 +28,7 @@ def save_pitchnames(pitchnames):
 
 
 def read_pitchnames():
-    with open('files/batch_data/pitchnames.txt', 'r') as fin:
+    with open('../files/batch_data/pitchnames.txt', 'r') as fin:
         return sorted(set(eval(fin.readline())))
 
 
@@ -47,33 +47,40 @@ def size_of_numpy_array(arr: np.array):
     return arr.size * arr.dtype.itemsize
 
 
+def load_song(path):
+    notes = []
+    try:
+        midi = converter.parse(path)
+        notes_to_parse = None
+        parts = instrument.partitionByInstrument(midi)
+
+        if parts:  # file has instrument parts
+            parts = [part for part in parts if part.partName == 'Piano']
+            if parts:
+                notes_to_parse = parts[0].recurse()
+        else:  # file has notes in a flat structure
+            notes_to_parse = midi.flat.notes
+        if notes_to_parse:
+            for element in notes_to_parse:
+                if isinstance(element, note.Note):
+                    notes.append(str(element.pitch))
+                elif isinstance(element, chord.Chord):
+                    notes.append('.'.join(str(n) for n in element.normalOrder))
+        return notes
+
+    except music21.midi.MidiException as e:
+        print(f"[ERROR]: Bad MIDI file, please remove {path}")
+        print(e)
+        return None
+
+
 def load_notes(path):
     songs = []
     song_files = glob.glob(f"{path}/*.mid")
     for i, file in tqdm(enumerate(song_files), desc='Loading in songs'):
-        notes = []
-        try:
-            midi = converter.parse(file)
-            notes_to_parse = None
-            parts = instrument.partitionByInstrument(midi)
-
-            if parts:  # file has instrument parts
-                parts = [part for part in parts if part.partName == 'Piano']
-                if parts:
-                    notes_to_parse = parts[0].recurse()
-            else:  # file has notes in a flat structure
-                notes_to_parse = midi.flat.notes
-            if notes_to_parse:
-                for element in notes_to_parse:
-                    if isinstance(element, note.Note):
-                        notes.append(str(element.pitch))
-                    elif isinstance(element, chord.Chord):
-                        notes.append('.'.join(str(n) for n in element.normalOrder))
-            songs.append(np.array(notes))
-
-        except music21.midi.MidiException as e:
-            print(f"[ERROR]: Bad MIDI file, please remove {file}")
-            print(e)
+        notes = load_song(file)
+        if notes:
+            songs.append(notes)
 
     # get all pitch names
     all_notes = [item for sublist in songs for item in sublist]
@@ -148,6 +155,9 @@ def setup(train, val, sequence_length, note_to_int, n_vocab, size_of_array):
     lock_1 = Lock()
 
     num_processes = 6
+    print('#' * 50)
+    print("VALIDATION")
+    print('#' * 50)
     for j in range(0, len(val), num_processes):
         procs = [Process(target=threaded_sequencing,
                          args=(i, val, sequence_length, note_to_int, n_vocab, size_of_array, 'files/batch_data/val', counter_val_1, lock_1)) for i in
@@ -162,7 +172,9 @@ def setup(train, val, sequence_length, note_to_int, n_vocab, size_of_array):
     # Sequence the songs and save to file
     counter_val = Value('i', 0)
     lock = Lock()
-
+    print('#' * 50)
+    print("TRAINING")
+    print('#' * 50)
     for j in range(0, len(train), num_processes):
         procs = [Process(target=threaded_sequencing,
                          args=(i, train, sequence_length, note_to_int, n_vocab, size_of_array, 'files/batch_data/train', counter_val, lock)) for i in
