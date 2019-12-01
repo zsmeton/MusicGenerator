@@ -15,7 +15,7 @@ def thread_generate(input_file, output_file, length, temperature):
     n_vocab = len(read_pitchnames())  # get amount of pitch names
     model = create_model(read_size_of_data(), n_vocab)
     model.summary()
-    model.load_weights("../files/models/notes/model-12-4.7494.hdf5")
+    model.load_weights("files/models/notes/model-07-4.7449.hdf5")
 
     # Generate music
     generate_music(model, input_file, output_file, length, temperature=temperature)

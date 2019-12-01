@@ -88,7 +88,7 @@ if __name__ == "__main__":
     n_vocab = len(read_pitchnames())  # get amount of pitch names
     model = create_model(read_size_of_data(), n_vocab)
     model.summary()
-    model.load_weights("../files/models/notes/model-12-4.7494.hdf5")
+    model.load_weights("files/models/notes/model-07-4.7449.hdf5")
 
     # Generate music
     generate_music(model, "../files/seeds/bach_846.mid", "../files/songs/bach_1.mid", 60)
