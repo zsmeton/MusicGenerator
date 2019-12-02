@@ -15,7 +15,7 @@ def thread_generate(input_file, output_file, length, temperature):
     n_vocab = len(read_pitchnames())  # get amount of pitch names
     model = create_model(read_size_of_data(), n_vocab)
     model.summary()
-    model.load_weights("../files/models/notes/model-07-4.7449.hdf5")
+    model.load_weights("../files/models/notes/model-13-4.7501.hdf5")
 
     # Generate music
     generate_music(model, input_file, output_file, length, temperature=temperature)
@@ -31,7 +31,17 @@ class Application(Frame):
         # Page Title
         self.master.title("Apollo Music Generator")
         # Window Size
-        self.master.geometry("400x300+300+200")
+        # Gets the requested values of the height and widht.
+        self.master.geometry("400x350")
+        windowWidth = root.winfo_reqwidth()
+        windowHeight = root.winfo_reqheight()
+        print("Width", windowWidth, "Height", windowHeight)
+        # Gets both half the screen width/height and window width/height
+        positionRight = int(root.winfo_screenwidth()/2 - windowWidth / 2)
+        positionDown = int(root.winfo_screenheight()/3 - windowHeight/2)
+        # Positions the window in the center of the page.
+        self.master.geometry("400x350+{}+{}".format(positionRight, positionDown))
+
         # load model
         n_vocab = len(read_pitchnames())  # get amount of pitch names
         self.last_save_location = None
@@ -45,10 +55,10 @@ class Application(Frame):
 
         # Title
         self.title = Label(self, text="Apollo Music Generator", font=("Verdana", 14))
-        self.title.grid(row=n - 2, column=0, columnspan=2, sticky=W+E)
+        self.title.grid(row=n - 2, column=0, columnspan=2)
 
         self.team = Label(self, text="By: Snoopy Squad", font=("Verdana", 11))
-        self.team.grid(row=n - 1, column=0, columnspan=2, sticky=W+E)
+        self.team.grid(row=n - 1, column=0, columnspan=2)
 
         # Add text for instructions
         guide = "Instructions"
@@ -80,7 +90,7 @@ class Application(Frame):
         self.get_time.grid(row=n + 2, column=1, sticky=W+E)
 
         # Randomness slider
-        self.get_randomness = Scale(self, from_=0.1, to=1.5, label='Randomness', orient=HORIZONTAL, resolution=0.01)
+        self.get_randomness = Scale(self, from_=0.1, to=1.5, label='Randomness', orient=HORIZONTAL, resolution=0.01, )
         self.get_randomness.grid(row=n+3, column=1)
         self.get_randomness.set(0.3)
 
@@ -90,7 +100,12 @@ class Application(Frame):
 
         # Quit buttom
         self.quit = Button(self, text="Quit", fg="red", command=self.master.destroy)
-        self.quit.grid(row=n + 5, column=0, columnspan=2, padx=5, pady=20)
+        self.quit.grid(row=n + 5, column=0, columnspan=2, padx=5, pady=10)
+
+        # Note about model training
+        guide = "The model used to generate this music was trained on MIDI files\n which are licensed under cc-by-sa Germany License to\nName: Bernd Krueger \nSource: http://www.piano-midi.de"
+        self.add_ins1 = Label(self, text=guide, font=("Verdana", 6))
+        self.add_ins1.grid(row=n + 7, column=0, columnspan=2)
 
     def file_input(self):
         # Get file action when button pressed
@@ -107,8 +122,6 @@ class Application(Frame):
             self.time = None
 
     def generate_new_music(self):
-        ######TODOTODOTODOTODO####
-        # Generate and play .mid music.
         # Generate music
         if self.file is None:
             messagebox.showerror("Error", "Must enter input file")
@@ -117,14 +130,17 @@ class Application(Frame):
             messagebox.showerror("Error", "Must enter desired song duration")
             return
 
+        # Saves the last place we chose to save for faster usage when saving to the same location
         if self.last_save_location:
-            if ".mid" in self.last_save_location:
+            # If the last_saved_location points to a file set it to point to that files path
+            if "." in self.last_save_location:
                 self.last_save_location = self.last_save_location[:str(self.last_save_location).rfind("/")]
             save_location = filedialog.asksaveasfilename(initialdir=self.last_save_location, title="Save as",
                                                  filetypes=(("midi files", "*.mid"), ("all files", "*.*")))
         else:
             save_location = filedialog.asksaveasfilename(initialdir="../", title="Save as",
                                          filetypes=(("midi files", "*.mid"), ("all files", "*.*")))
+        # If the user presses cancel during file selection cancel the transaction
         if not save_location:
             return
         else:
@@ -137,7 +153,7 @@ class Application(Frame):
         p.start()
         # Start loading bar
         progress = Progressbar(self, orient=HORIZONTAL,
-                               length=300, mode='indeterminate', label='Generating Music...')
+                               length=300, mode='indeterminate')
         progress.grid(row=n+6, column=0, columnspan=2)
 
         # animate loading bar going left to right while music is being generated
@@ -161,11 +177,6 @@ app = Application(master=root)
 
 app.mainloop()
 
-# To save new file to documents
-# os.path.join(os.path.expanduser('~'),'Documents', NEW_MIDI_GENERATED_FILE)
-
 ###########KEY###############
 # app.time = time to make music
 # app.file = .mid file
-# Delete self.DELETETHIS once you begin working on the function.
-# ##It is a holder so the code will compile without the function doing anything.
