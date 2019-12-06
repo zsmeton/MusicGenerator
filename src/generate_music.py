@@ -81,6 +81,7 @@ def generate_music(l_model, input_file, output_file, length, temperature=0.2):
         offset += time_step
     midi.insert(0, generated_part)
     midi.write('midi', fp=output_file)
+    midi.show('text')
 
 
 if __name__ == "__main__":
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     n_vocab = len(read_pitchnames())  # get amount of pitch names
     model = create_model(read_size_of_data(), n_vocab)
     model.summary()
-    model.load_weights("files/models/notes/model-07-4.7449.hdf5")
+    model.load_weights("../files/models/notes/model-13-4.7501.hdf5")
 
     # Generate music
-    generate_music(model, "../files/seeds/bach_846.mid", "../files/songs/bach_1.mid", 60)
+    generate_music(model, "../files/seeds/bach_846.mid", "../files/|Asongs/bach_1.mid", 60)

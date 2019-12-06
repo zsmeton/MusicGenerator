@@ -1,1 +1,0 @@
-"[{'val_loss': [6.7646894454956055], 'val_categorical_accuracy': [0.02336530014872551], 'loss': [5.020699345217589], 'categorical_accuracy': [0.02028343826532364]}, {'val_loss': [6.6827778816223145], 'val_categorical_accuracy': [0.01962309703230858], 'loss': [4.987904608299543], 'categorical_accuracy': [0.020386017858982086]}]"
